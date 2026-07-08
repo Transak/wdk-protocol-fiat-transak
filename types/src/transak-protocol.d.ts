@@ -703,8 +703,8 @@ export type TransakProtocolConfig = {
      */
     cacheTime?: number;
     /**
-     * - The environment to use for Transak endpoints and widget URLs. Defaults to "production". Use "production" for live transactions and "sandbox" for testing with non-real funds.
+     * - The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
      */
-    environment?: "production" | "sandbox";
+    environment?: "PRODUCTION" | "STAGING";
 };
 import { FiatProtocol } from '@tetherto/wdk-wallet/protocols';

@@ -46,7 +46,7 @@ function findCall (urlFragment) {
 }
 
 describe('TransakProtocol', () => {
-  const config = { signUrl, apiKey: MOCK_API_KEY, environment: 'sandbox' }
+  const config = { signUrl, apiKey: MOCK_API_KEY, environment: 'STAGING' }
 
   let transak
 
@@ -124,7 +124,7 @@ describe('TransakProtocol', () => {
     test('should return an unsigned URL when signUrl is not provided', async () => {
       global.fetch = createFetchMock()
 
-      const noSign = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY, environment: 'sandbox' })
+      const noSign = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY, environment: 'STAGING' })
       const { buyUrl } = await noSign.buy({
         cryptoAsset: 'eth',
         fiatCurrency: 'usd',

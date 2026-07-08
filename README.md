@@ -51,7 +51,7 @@ const signUrl = async (urlForSignature) => {
 const transak = new TransakProtocol(undefined, {
   apiKey: 'YOUR_TRANSAK_PARTNER_KEY',
   signUrl,
-  environment: 'sandbox'
+  environment: 'STAGING'
 })
 
 // Get a buy quote
@@ -131,7 +131,7 @@ Parameters:
   - `apiKey` (string): Your Transak partner API key.
   - `signUrl` (function, optional): Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the unsigned query-parameter URL.
   - `cacheTime` (number, optional): The duration in milliseconds to cache supported currencies.
-  - `environment` ("production" | "sandbox", optional): The environment to use for Transak endpoints and widget URLs. Defaults to "production". Use "production" for live transactions and "sandbox" for testing with non-real funds.
+  - `environment` ("PRODUCTION" | "STAGING", optional): The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
 
 ### Methods
 
@@ -208,7 +208,7 @@ Retrieves a list of supported countries.
 - Check the Transak documentation for the full list of widget parameters, supported cryptocurrencies and regions.
 - The package provides the baseline for Transak integration. To fully utilize the power of the Transak widget, take a look at the [Transak query parameters documentation](https://docs.transak.com/customization/query-parameters) for the full list of parameters.
 - The `apiKey` can be retrieved through the [Transak Partner dashboard](https://dashboard.transak.com/).
-- It is highly recommended to test the entire buy/sell flow in the `sandbox` environment.
+- It is highly recommended to test the entire buy/sell flow in the `STAGING` environment.
 
 ## 🔒 Security Considerations
 

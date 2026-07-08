@@ -246,7 +246,7 @@ import BigNumber from 'bignumber.js'
  * @property {string} apiKey - Your Transak partner API key.
  * @property {(urlForSignature: string) => Promise<string>} [signUrl] - Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the unsigned query-parameter URL.
  * @property {number} [cacheTime] - The duration in milliseconds to cache supported currencies.
- * @property {"production" | "sandbox"} [environment] - The environment to use for Transak endpoints and widget URLs. Defaults to "production". Use "production" for live transactions and "sandbox" for testing with non-real funds.
+ * @property {"PRODUCTION" | "STAGING"} [environment] - The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
  */
 
 /**
@@ -290,12 +290,12 @@ function getFiatDecimals (currencyDetail) {
 
 const TRANSAK_ORIGINS = {
   API: {
-    production: 'https://api.transak.com/',
-    sandbox: 'https://api-stg.transak.com/'
+    PRODUCTION: 'https://api.transak.com/',
+    STAGING: 'https://api-stg.transak.com/'
   },
   WIDGET: {
-    production: 'https://global.transak.com/',
-    sandbox: 'https://global-stg.transak.com/'
+    PRODUCTION: 'https://global.transak.com/',
+    STAGING: 'https://global-stg.transak.com/'
   }
 }
 const TRANSAK_CACHE_TIME = 10 * 60 * 1000
@@ -324,7 +324,7 @@ export default class TransakProtocol extends FiatProtocol {
    * @param {IWalletAccount} account - The wallet account to use to interact with the protocol.
    * @param {TransakProtocolConfig} config - The Transak protocol configuration.
    */
-  constructor (account, { apiKey, signUrl, environment = 'production', cacheTime = TRANSAK_CACHE_TIME }) {
+  constructor (account, { apiKey, signUrl, environment = 'PRODUCTION', cacheTime = TRANSAK_CACHE_TIME }) {
     super(account)
 
     /** @private */
