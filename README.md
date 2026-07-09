@@ -2,7 +2,7 @@
 
 Note: This package is in beta. Please test in a dev setup first.
 
-A simple way to integrate the Transak widget for on-ramp and off-ramp services. You can generate signed or unsigned URLs for the Transak widget, get quotes for buying and selling crypto, and read protocol-related data. This package can be used in both frontend and backend environments.
+A simple way to integrate the Transak widget for on-ramp and off-ramp services. You can generate secure, session-based or direct query-parameter widget URLs, get quotes for buying and selling crypto, and read protocol-related data. This package can be used in both frontend and backend environments.
 
 ## 🔍 About WDK
 
@@ -10,8 +10,8 @@ This is part of WDK (Wallet Development Kit). WDK helps you build safe, non‑cu
 
 ## 🌟 Features
 
-- Generate signed or unsigned widget URL to buy Crypto (On-ramp)
-- Generate signed or unsigned widget URL to sell Crypto (Off-ramp)
+- Generate a secure (session-based) or direct widget URL to buy Crypto (On-ramp)
+- Generate a secure (session-based) or direct widget URL to sell Crypto (Off-ramp)
 - Get quotes (buy and sell)
 - Get supported currencies, countries
 - Get order (transaction) details
@@ -29,28 +29,28 @@ npm install @tetherto/wdk-protocol-fiat-transak
 ```javascript
 import TransakProtocol from '@tetherto/wdk-protocol-fiat-transak'
 
-const signUrl = async (urlForSignature) => {
-  const response = await fetch('https://your-backend.example.com/transak/sign-url', {
+const widgetUrl = async (url) => {
+  const response = await fetch('https://your-backend.example.com/transak/widget-url', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ urlForSignature })
+    body: JSON.stringify({ url })
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to sign Transak URL: ${response.status} ${response.statusText}`)
+    throw new Error(`Failed to create Transak widget URL: ${response.status} ${response.statusText}`)
   }
 
-  const { signedUrl } = await response.json()
+  const { widgetUrl } = await response.json()
 
-  return signedUrl
+  return widgetUrl
 }
 
 // Initialize protocol
 const transak = new TransakProtocol(undefined, {
   apiKey: 'YOUR_TRANSAK_PARTNER_KEY',
-  signUrl,
+  widgetUrl,
   environment: 'STAGING'
 })
 
@@ -129,7 +129,7 @@ Parameters:
 - `account` (IWalletAccount | IWalletAccountReadOnly | undefined): The wallet account to use to interact with the protocol.
 - `config` (object): The protocol config
   - `apiKey` (string): Your Transak partner API key.
-  - `signUrl` (function, optional): Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the unsigned query-parameter URL.
+  - `widgetUrl` (function, optional): Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the direct query-parameter URL.
   - `cacheTime` (number, optional): The duration in milliseconds to cache supported currencies.
   - `environment` ("PRODUCTION" | "STAGING", optional): The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
 
@@ -212,7 +212,7 @@ Retrieves a list of supported countries.
 
 ## 🔒 Security Considerations
 
-- Keep your Transak API secret / access token safe on your backend. Expose a backend signing API to clients, and have `signUrl` call that API (which calls Transak's Create Widget URL API) to retrieve the secure widget URL. See [Transak's migration to API-based widget URLs](https://docs.transak.com/guides/migration-to-api-based-transak-widget-url).
+- Keep your Transak API secret / access token safe on your backend. Expose a backend API to clients, and have `widgetUrl` call that API (which calls Transak's Create Widget URL API) to retrieve the secure widget URL. See [Transak's migration to API-based widget URLs](https://docs.transak.com/guides/migration-to-api-based-transak-widget-url).
 
 ## 🛠️ Development
 

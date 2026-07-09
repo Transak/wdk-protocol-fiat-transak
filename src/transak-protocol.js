@@ -244,7 +244,7 @@ import BigNumber from 'bignumber.js'
 /**
  * @typedef {Object} TransakProtocolConfig
  * @property {string} apiKey - Your Transak partner API key.
- * @property {(urlForSignature: string) => Promise<string>} [signUrl] - Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the unsigned query-parameter URL.
+ * @property {(url: string) => Promise<string>} [widgetUrl] - Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the unsigned query-parameter URL.
  * @property {number} [cacheTime] - The duration in milliseconds to cache supported currencies.
  * @property {"PRODUCTION" | "STAGING"} [environment] - The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
  */
@@ -324,14 +324,14 @@ export default class TransakProtocol extends FiatProtocol {
    * @param {IWalletAccount} account - The wallet account to use to interact with the protocol.
    * @param {TransakProtocolConfig} config - The Transak protocol configuration.
    */
-  constructor (account, { apiKey, signUrl, environment = 'PRODUCTION', cacheTime = TRANSAK_CACHE_TIME }) {
+  constructor (account, { apiKey, widgetUrl, environment = 'PRODUCTION', cacheTime = TRANSAK_CACHE_TIME }) {
     super(account)
 
     /** @private */
     this._apiKey = apiKey
 
     /** @private */
-    this._signUrl = signUrl
+    this._widgetUrl = widgetUrl
 
     /** @private */
     this._environment = environment
@@ -433,15 +433,15 @@ export default class TransakProtocol extends FiatProtocol {
       }
     })
 
-    const urlForSignature = url.toString()
+    const generatedUrl = url.toString()
 
-    if (!this._signUrl) {
+    if (!this._widgetUrl) {
       return {
-        buyUrl: urlForSignature
+        buyUrl: generatedUrl
       }
     }
 
-    const buyUrl = await this._signUrl(urlForSignature)
+    const buyUrl = await this._widgetUrl(generatedUrl)
 
     return {
       buyUrl
@@ -575,15 +575,15 @@ export default class TransakProtocol extends FiatProtocol {
       }
     })
 
-    const urlForSignature = url.toString()
+    const generatedUrl = url.toString()
 
-    if (!this._signUrl) {
+    if (!this._widgetUrl) {
       return {
-        sellUrl: urlForSignature
+        sellUrl: generatedUrl
       }
     }
 
-    const sellUrl = await this._signUrl(urlForSignature)
+    const sellUrl = await this._widgetUrl(generatedUrl)
 
     return {
       sellUrl

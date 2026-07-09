@@ -26,7 +26,7 @@ export default class TransakProtocol extends FiatProtocol {
     /** @private */
     private _apiKey;
     /** @private */
-    private _signUrl;
+    private _widgetUrl;
     /** @private */
     private _environment;
     /** @private */
@@ -697,7 +697,7 @@ export type TransakProtocolConfig = {
     /**
      * - Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the unsigned query-parameter URL.
      */
-    signUrl?: (urlForSignature: string) => Promise<string>;
+    widgetUrl?: (url: string) => Promise<string>;
     /**
      * - The duration in milliseconds to cache supported currencies.
      */

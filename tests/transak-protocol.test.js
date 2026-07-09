@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, jest, test } from '@jest/globals'
 
 import TransakProtocol from '../src/transak-protocol.js'
 
-const signUrl = jest.fn()
+const widgetUrl = jest.fn()
 
 const MOCK_API_KEY = 'pk_test_123'
-const MOCK_SIGNED_URL = 'MOCK_SIGNED_URL'
+const MOCK_WIDGET_URL = 'MOCK_WIDGET_URL'
 const MOCK_ACCOUNT_ADDRESS = 'MOCK_ACCOUNT_ADDRESS'
 
 const MOCK_CRYPTO = [
@@ -46,7 +46,7 @@ function findCall (urlFragment) {
 }
 
 describe('TransakProtocol', () => {
-  const config = { signUrl, apiKey: MOCK_API_KEY, environment: 'STAGING' }
+  const config = { widgetUrl, apiKey: MOCK_API_KEY, environment: 'STAGING' }
 
   let transak
 
@@ -57,7 +57,7 @@ describe('TransakProtocol', () => {
 
   describe('buy', () => {
     test('should successfully generate a buy URL to buy an exact crypto amount', async () => {
-      signUrl.mockReturnValue(MOCK_SIGNED_URL)
+      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
       global.fetch = createFetchMock()
 
       const { buyUrl } = await transak.buy({
@@ -66,7 +66,7 @@ describe('TransakProtocol', () => {
         cryptoAmount: 1_000_000_000_000_000_000n
       })
 
-      const [[params]] = signUrl.mock.calls
+      const [[params]] = widgetUrl.mock.calls
 
       expect(new URL(params).origin).toBe('https://global-stg.transak.com')
       expect(Object.fromEntries(new URL(params).searchParams)).toMatchObject({
@@ -77,11 +77,11 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         cryptoAmount: '1.00000'
       })
-      expect(buyUrl).toBe(MOCK_SIGNED_URL)
+      expect(buyUrl).toBe(MOCK_WIDGET_URL)
     })
 
     test('should successfully generate a buy URL to buy with a specified fiat amount', async () => {
-      signUrl.mockReturnValue(MOCK_SIGNED_URL)
+      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
       global.fetch = createFetchMock()
 
       const { buyUrl } = await transak.buy({
@@ -90,7 +90,7 @@ describe('TransakProtocol', () => {
         fiatAmount: 1000_00n // 1000 USD
       })
 
-      const [[params]] = signUrl.mock.calls
+      const [[params]] = widgetUrl.mock.calls
 
       expect(Object.fromEntries(new URL(params).searchParams)).toMatchObject({
         apiKey: MOCK_API_KEY,
@@ -99,11 +99,11 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         fiatAmount: '1000.00'
       })
-      expect(buyUrl).toBe(MOCK_SIGNED_URL)
+      expect(buyUrl).toBe(MOCK_WIDGET_URL)
     })
 
     test('should resolve the network from config when the symbol is ambiguous', async () => {
-      signUrl.mockReturnValue(MOCK_SIGNED_URL)
+      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
       global.fetch = createFetchMock()
 
       await transak.buy({
@@ -113,7 +113,7 @@ describe('TransakProtocol', () => {
         config: { network: 'tron' }
       })
 
-      const [[params]] = signUrl.mock.calls
+      const [[params]] = widgetUrl.mock.calls
 
       expect(Object.fromEntries(new URL(params).searchParams)).toMatchObject({
         cryptoCurrencyCode: 'USDT',
@@ -121,7 +121,7 @@ describe('TransakProtocol', () => {
       })
     })
 
-    test('should return an unsigned URL when signUrl is not provided', async () => {
+    test('should return an unsigned URL when widgetUrl is not provided', async () => {
       global.fetch = createFetchMock()
 
       const noSign = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY, environment: 'STAGING' })
@@ -131,7 +131,7 @@ describe('TransakProtocol', () => {
         fiatAmount: 1000_00n
       })
 
-      expect(signUrl).not.toHaveBeenCalled()
+      expect(widgetUrl).not.toHaveBeenCalled()
       expect(new URL(buyUrl).origin).toBe('https://global-stg.transak.com')
       expect(Object.fromEntries(new URL(buyUrl).searchParams)).toMatchObject({
         apiKey: MOCK_API_KEY,
@@ -156,7 +156,7 @@ describe('TransakProtocol', () => {
     })
 
     test('should use the recipient wallet address when provided', async () => {
-      signUrl.mockReturnValue(MOCK_SIGNED_URL)
+      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
       global.fetch = createFetchMock()
 
       await transak.buy({
@@ -166,12 +166,12 @@ describe('TransakProtocol', () => {
         recipient: '0xabc'
       })
 
-      const [[params]] = signUrl.mock.calls
+      const [[params]] = widgetUrl.mock.calls
       expect(Object.fromEntries(new URL(params).searchParams).walletAddress).toBe('0xabc')
     })
 
     test('should use the account wallet address when no recipient is provided', async () => {
-      signUrl.mockReturnValue(MOCK_SIGNED_URL)
+      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
       global.fetch = createFetchMock()
 
       transak = new TransakProtocol(mockAccount, config)
@@ -181,7 +181,7 @@ describe('TransakProtocol', () => {
         fiatAmount: 1000_00n
       })
 
-      const [[params]] = signUrl.mock.calls
+      const [[params]] = widgetUrl.mock.calls
       expect(mockAccount.getAddress).toHaveBeenCalled()
       expect(Object.fromEntries(new URL(params).searchParams).walletAddress).toBe(MOCK_ACCOUNT_ADDRESS)
     })
@@ -219,7 +219,7 @@ describe('TransakProtocol', () => {
 
   describe('sell', () => {
     test('should successfully generate a sell URL to sell an exact crypto amount', async () => {
-      signUrl.mockReturnValue(MOCK_SIGNED_URL)
+      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
       global.fetch = createFetchMock()
 
       const { sellUrl } = await transak.sell({
@@ -228,7 +228,7 @@ describe('TransakProtocol', () => {
         cryptoAmount: 1_000_000_000_000_000_000n
       })
 
-      const [[params]] = signUrl.mock.calls
+      const [[params]] = widgetUrl.mock.calls
 
       expect(new URL(params).origin).toBe('https://global-stg.transak.com')
       expect(Object.fromEntries(new URL(params).searchParams)).toMatchObject({
@@ -239,11 +239,11 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         cryptoAmount: '1.00000'
       })
-      expect(sellUrl).toBe(MOCK_SIGNED_URL)
+      expect(sellUrl).toBe(MOCK_WIDGET_URL)
     })
 
     test('should use the refundAddress as the wallet address when provided', async () => {
-      signUrl.mockReturnValue(MOCK_SIGNED_URL)
+      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
       global.fetch = createFetchMock()
 
       await transak.sell({
@@ -253,7 +253,7 @@ describe('TransakProtocol', () => {
         refundAddress: '0xdef'
       })
 
-      const [[params]] = signUrl.mock.calls
+      const [[params]] = widgetUrl.mock.calls
       expect(Object.fromEntries(new URL(params).searchParams).walletAddress).toBe('0xdef')
     })
   })
