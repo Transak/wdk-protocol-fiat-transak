@@ -113,11 +113,13 @@ import BigNumber from 'bignumber.js'
 /**
  * @typedef {Object} TransakNetworkDetails
  * @property {string} name - The network's Transak identifier (e.g. 'ethereum', 'tron').
- * @property {number | string | null} [chainId] - The EVM chain ID, when applicable.
- * @property {Array<object>} [fiatCurrenciesNotSupported] - Fiat/payment-method combinations not supported on this network.
+ * @property {string} [chainId] - The chain ID, when applicable.
+ * @property {Array<{ fiatCurrency: string, paymentMethod: string }>} [fiatCurrenciesNotSupported] - Fiat/payment-method combinations not supported on this network.
  */
 
 /**
+ * A crypto currency as returned by Transak's Get Crypto Currencies API.
+ * See https://docs.transak.com/api/public/get-crypto-currencies.
  * @typedef {Object} TransakCryptoCurrencyDetails
  * @property {string} coinId - Transak's internal coin identifier.
  * @property {string} name - The crypto currency's name.
@@ -126,13 +128,17 @@ import BigNumber from 'bignumber.js'
  * @property {number} decimals - The on-chain number of decimal places for the asset's base unit.
  * @property {number} roundOff - The number of decimal places used when displaying amounts.
  * @property {TransakNetworkDetails} network - The network the asset lives on.
- * @property {boolean} isAllowed - Whether purchases (on-ramp) of this asset are supported.
- * @property {boolean} [isPayInAllowed] - Whether sales (off-ramp) of this asset are supported.
+ * @property {boolean} isAllowed - Whether buy (on-ramp) transactions are supported for this asset.
+ * @property {boolean} [isPayInAllowed] - Whether sell (off-ramp) transactions are supported for this asset.
  * @property {boolean} [isStable] - Whether the asset is a stablecoin.
+ * @property {boolean} [isPopular] - Whether the asset is flagged as popular.
  * @property {string | null} [address] - The token contract address, when applicable.
- * @property {string | null} [tokenIdentifier] - The token classification identifier.
+ * @property {string} [tokenType] - The token standard/classification (e.g. 'ERC20').
+ * @property {*} [tokenIdentifier] - The token classification identifier.
+ * @property {number} [minAmountForPayIn] - The minimum amount accepted for sell (pay-in) transactions.
+ * @property {number} [maxAmountForPayIn] - The maximum amount accepted for sell (pay-in) transactions.
  * @property {Array<string>} [kycCountriesNotSupported] - Country codes where this asset is not supported.
- * @property {object} [image] - Icon URLs for the asset.
+ * @property {{ large?: string, small?: string, thumb?: string }} [image] - Icon URLs for the asset.
  */
 
 /**
@@ -146,15 +152,22 @@ import BigNumber from 'bignumber.js'
  */
 
 /**
+ * A fiat currency as returned by Transak's Get Fiat Currencies API.
+ * See https://docs.transak.com/api/public/get-fiat-currencies.
+ * Note: the fiat schema has no `decimals` field — `roundOff` is the number of
+ * decimal places for the currency's smallest unit.
  * @typedef {Object} TransakFiatCurrencyDetails
  * @property {string} symbol - The currency's code (e.g. 'USD').
  * @property {string} name - The currency's name.
- * @property {boolean} isAllowed - Whether purchases (on-ramp) using this currency are supported.
- * @property {boolean} [isPayOutAllowed] - Whether payouts (off-ramp) to this currency are supported.
- * @property {number} roundOff - The number of decimal places used for this currency's smallest unit.
+ * @property {boolean} isAllowed - Whether buy (on-ramp) transactions using this currency are supported.
+ * @property {boolean} [isPayOutAllowed] - Whether sell (off-ramp) payouts to this currency are supported.
+ * @property {number} roundOff - The number of decimal places for this currency's smallest unit.
  * @property {boolean} [isPopular] - Whether the currency is flagged as popular.
  * @property {Array<string>} [supportingCountries] - ISO 3166-1 alpha-2 country codes that support this currency.
  * @property {string} [logoSymbol] - The country/region code used for the currency's logo.
+ * @property {string} [icon] - The currency's icon (SVG markup or URL).
+ * @property {string} [defaultCountryForNFT] - The default country used for NFT flows.
+ * @property {string} [displayMessage] - A message shown when the currency is unavailable.
  * @property {Array<TransakPaymentOption>} [paymentOptions] - The payment options available for this currency.
  */
 

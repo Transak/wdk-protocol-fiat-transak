@@ -349,14 +349,21 @@ export type TransakNetworkDetails = {
      */
     name: string;
     /**
-     * - The EVM chain ID, when applicable.
+     * - The chain ID, when applicable.
      */
-    chainId?: number | string | null;
+    chainId?: string;
     /**
      * - Fiat/payment-method combinations not supported on this network.
      */
-    fiatCurrenciesNotSupported?: Array<object>;
+    fiatCurrenciesNotSupported?: Array<{
+        fiatCurrency: string;
+        paymentMethod: string;
+    }>;
 };
+/**
+ * A crypto currency as returned by Transak's Get Crypto Currencies API.
+ * See https://docs.transak.com/api/public/get-crypto-currencies.
+ */
 export type TransakCryptoCurrencyDetails = {
     /**
      * - Transak's internal coin identifier.
@@ -387,11 +394,11 @@ export type TransakCryptoCurrencyDetails = {
      */
     network: TransakNetworkDetails;
     /**
-     * - Whether purchases (on-ramp) of this asset are supported.
+     * - Whether buy (on-ramp) transactions are supported for this asset.
      */
     isAllowed: boolean;
     /**
-     * - Whether sales (off-ramp) of this asset are supported.
+     * - Whether sell (off-ramp) transactions are supported for this asset.
      */
     isPayInAllowed?: boolean;
     /**
@@ -399,13 +406,29 @@ export type TransakCryptoCurrencyDetails = {
      */
     isStable?: boolean;
     /**
+     * - Whether the asset is flagged as popular.
+     */
+    isPopular?: boolean;
+    /**
      * - The token contract address, when applicable.
      */
     address?: string | null;
     /**
+     * - The token standard/classification (e.g. 'ERC20').
+     */
+    tokenType?: string;
+    /**
      * - The token classification identifier.
      */
-    tokenIdentifier?: string | null;
+    tokenIdentifier?: any;
+    /**
+     * - The minimum amount accepted for sell (pay-in) transactions.
+     */
+    minAmountForPayIn?: number;
+    /**
+     * - The maximum amount accepted for sell (pay-in) transactions.
+     */
+    maxAmountForPayIn?: number;
     /**
      * - Country codes where this asset is not supported.
      */
@@ -413,7 +436,11 @@ export type TransakCryptoCurrencyDetails = {
     /**
      * - Icon URLs for the asset.
      */
-    image?: object;
+    image?: {
+        large?: string;
+        small?: string;
+        thumb?: string;
+    };
 };
 export type TransakPaymentOption = {
     /**
@@ -441,6 +468,12 @@ export type TransakPaymentOption = {
      */
     isPayOutAllowed?: boolean;
 };
+/**
+ * A fiat currency as returned by Transak's Get Fiat Currencies API.
+ * See https://docs.transak.com/api/public/get-fiat-currencies.
+ * Note: the fiat schema has no `decimals` field — `roundOff` is the number of
+ * decimal places for the currency's smallest unit.
+ */
 export type TransakFiatCurrencyDetails = {
     /**
      * - The currency's code (e.g. 'USD').
@@ -451,15 +484,15 @@ export type TransakFiatCurrencyDetails = {
      */
     name: string;
     /**
-     * - Whether purchases (on-ramp) using this currency are supported.
+     * - Whether buy (on-ramp) transactions using this currency are supported.
      */
     isAllowed: boolean;
     /**
-     * - Whether payouts (off-ramp) to this currency are supported.
+     * - Whether sell (off-ramp) payouts to this currency are supported.
      */
     isPayOutAllowed?: boolean;
     /**
-     * - The number of decimal places used for this currency's smallest unit.
+     * - The number of decimal places for this currency's smallest unit.
      */
     roundOff: number;
     /**
@@ -474,6 +507,18 @@ export type TransakFiatCurrencyDetails = {
      * - The country/region code used for the currency's logo.
      */
     logoSymbol?: string;
+    /**
+     * - The currency's icon (SVG markup or URL).
+     */
+    icon?: string;
+    /**
+     * - The default country used for NFT flows.
+     */
+    defaultCountryForNFT?: string;
+    /**
+     * - A message shown when the currency is unavailable.
+     */
+    displayMessage?: string;
     /**
      * - The payment options available for this currency.
      */
