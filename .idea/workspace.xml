@@ -5,6 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="62f53e24-5032-4877-87de-f38e2da1c226" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/transak-protocol.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/transak-protocol.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/transak-protocol.test.js" beforeDir="false" afterPath="$PROJECT_DIR$/tests/transak-protocol.test.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/types/src/transak-protocol.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/types/src/transak-protocol.d.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -109,7 +113,7 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1783544961979</updated>
-      <workItem from="1783544963013" duration="9591000" />
+      <workItem from="1783544963013" duration="14373000" />
     </task>
     <servers />
   </component>

@@ -2,7 +2,7 @@
 
 Note: This package is in beta. Please test in a dev setup first.
 
-A simple way to integrate the Transak widget for on-ramp and off-ramp services. You can generate secure, session-based or direct query-parameter widget URLs, get quotes for buying and selling crypto, and read protocol-related data. This package can be used in both frontend and backend environments.
+Integrate the Transak widget for buying (on-ramp) and selling (off-ramp) crypto. Use it to generate widget URLs, get buy and sell quotes, and look up supported currencies, countries, and order details. Works in both frontend and backend code.
 
 ## 🔍 About WDK
 
@@ -10,11 +10,11 @@ This is part of WDK (Wallet Development Kit). WDK helps you build safe, non‑cu
 
 ## 🌟 Features
 
-- Generate a secure (session-based) or direct widget URL to buy Crypto (On-ramp)
-- Generate a secure (session-based) or direct widget URL to sell Crypto (Off-ramp)
-- Get quotes (buy and sell)
-- Get supported currencies, countries
-- Get order (transaction) details
+- Generate a widget URL to buy crypto (on-ramp)
+- Generate a widget URL to sell crypto (off-ramp)
+- Get buy and sell quotes
+- List supported currencies and countries
+- Look up order (transaction) details
 
 ## ⬇️ Installation
 
@@ -55,35 +55,39 @@ const transak = new TransakProtocol(undefined, {
   environment: 'STAGING'
 })
 
-// Get a buy quote
+// Get a buy quote (cryptoAsset, fiatCurrency, fiatAmount, paymentMethod and network are all required)
 const buyQuote = await transak.quoteBuy({
-  fiatCurrency: 'usd',
-  cryptoAsset: 'eth',
-  fiatAmount: 100_00n // 100 USD, in the smallest fiat unit (cents)
+  cryptoAsset: 'ETH',
+  fiatCurrency: 'USD',
+  fiatAmount: 100, // 100 USD, as a decimal in standard units
+  paymentMethod: 'credit_debit_card',
+  network: 'ethereum'
 })
 
 // Generate a buy widget URL
 const { buyUrl } = await transak.buy({
-  fiatCurrency: 'usd',
-  cryptoAsset: 'eth',
-  fiatAmount: 100_00n,
+  fiatCurrency: 'USD',
+  cryptoAsset: 'ETH',
+  fiatAmount: 100,
   recipient: '0xabc'
 })
 
 console.log('Buy URL:', buyUrl)
 
-// Get a sell quote
+// Get a sell quote (cryptoAsset, fiatCurrency, cryptoAmount, paymentMethod and network are all required)
 const sellQuote = await transak.quoteSell({
-  fiatCurrency: 'usd',
-  cryptoAsset: 'eth',
-  cryptoAmount: 100_000_000_000_000_000n // 0.1 ETH, in wei
+  cryptoAsset: 'ETH',
+  fiatCurrency: 'USD',
+  cryptoAmount: 0.1, // 0.1 ETH, as a decimal in standard units
+  paymentMethod: 'sepa_bank_transfer',
+  network: 'ethereum'
 })
 
 // Generate a sell widget URL
 const { sellUrl } = await transak.sell({
-  fiatCurrency: 'usd',
-  cryptoAsset: 'eth',
-  cryptoAmount: 100_000_000_000_000_000n,
+  fiatCurrency: 'USD',
+  cryptoAsset: 'ETH',
+  cryptoAmount: 0.1,
   refundAddress: '0xabc'
 })
 ```
@@ -107,23 +111,23 @@ const transak = new TransakProtocol(account, {
 
 // No `recipient` needed — the account's address is filled in automatically.
 const { buyUrl } = await transak.buy({
-  fiatCurrency: 'usd',
-  cryptoAsset: 'eth',
-  fiatAmount: 100_00n
+  fiatCurrency: 'USD',
+  cryptoAsset: 'ETH',
+  fiatAmount: 100
 })
 
 // Likewise, no `refundAddress` needed for sell.
 const { sellUrl } = await transak.sell({
-  fiatCurrency: 'usd',
-  cryptoAsset: 'eth',
-  cryptoAmount: 100_000_000_000_000_000n
+  fiatCurrency: 'USD',
+  cryptoAsset: 'ETH',
+  cryptoAmount: 0.1
 })
 
 // An explicit recipient/refundAddress still wins over the account address:
 const { buyUrl: toOther } = await transak.buy({
-  fiatCurrency: 'usd',
-  cryptoAsset: 'eth',
-  fiatAmount: 100_00n,
+  fiatCurrency: 'USD',
+  cryptoAsset: 'ETH',
+  fiatAmount: 100,
   recipient: '0xSomeOtherAddress'
 })
 ```
@@ -134,35 +138,102 @@ The `account` argument accepts three forms:
 
 - **`undefined`** — no wallet is bound. Pass `recipient`/`refundAddress` explicitly on `buy`/`sell`, or omit them to let the Transak widget prompt the user for the address. Ideal for quotes, backend/server usage, or when the destination address comes from elsewhere.
 - **`IWalletAccountReadOnly`** — a read-only account. Its `getAddress()` is used to pre-fill the wallet address on `buy`/`sell`.
-- **`IWalletAccount`** — a full wallet account. Behaves the same as a read-only account here, since the fiat on/off-ramp flow does not sign transactions (the Transak widget handles the crypto side).
+- **`IWalletAccount`** — a full wallet account. Works the same as a read-only account here, since the buy/sell flow never signs transactions (Transak's widget handles the crypto side).
 
-Only `buy` and `sell` read the account — and only to derive the wallet address when you don't pass one. `quoteBuy`, `quoteSell`, `getTransactionDetail`, and the `getSupported*` methods never use it, so `undefined` is sufficient for those.
+Only `buy` and `sell` use the account, and only to fill in the wallet address when you don't pass one. `quoteBuy`, `quoteSell`, `getTransactionDetail`, and the `getSupported*` methods don't use it, so `undefined` is fine for those.
 
 ## 💱 Amounts & Units
 
-Following WDK conventions, all amounts cross the interface in **base units**, as `bigint` or `number`:
+**Inputs** — `fiatAmount` and `cryptoAmount` are passed as **decimals in standard units**, matching Transak's API (not WDK base units):
 
-- `fiatAmount` is in the currency's smallest unit — e.g. `100_00` for 100 USD (cents).
-- `cryptoAmount` is in the asset's on-chain base unit — e.g. `1_000_000_000_000_000_000` for 1 ETH (wei).
+- `fiatAmount` — e.g. `100` or `100.5` for 100.50 USD.
+- `cryptoAmount` — e.g. `0.1` for 0.1 ETH.
 
-The module reads each asset's `decimals` from Transak's supported-currencies endpoints to convert between base units and the human-readable amounts Transak's APIs expect. Quotes are likewise returned in base units (`bigint`).
+**Quote outputs** — the `FiatQuote` returned by `quoteBuy`/`quoteSell` follows the WDK convention and reports amounts in **base units** as `bigint`:
 
-## 🌐 Assets & Networks
+- `cryptoAmount` / `fiatAmount` / `fee` are `bigint` in the asset's base unit (e.g. wei) and the currency's smallest unit (e.g. cents).
+- `rate` is a decimal string (standard units).
 
-WDK identifies a crypto asset by a single `cryptoAsset` code (e.g. `'usdt'`). Transak identifies an asset by its `cryptoCurrencyCode` **and** `network` (USDT exists on ethereum, tron, solana, …).
+So: you pass plain decimals in, and get `bigint` base units back. The module uses each asset's `decimals` and each currency's `roundOff` (from the supported-currencies lists) to do the conversion.
 
-By default, the module resolves the network for a symbol from Transak's supported-crypto list (the first match). If a symbol exists on multiple networks, pass `config.network` to disambiguate:
+## 🌐 Values & Conventions
+
+Pass `cryptoAsset`, `fiatCurrency`, `network`, and `paymentMethod` **exactly** as Transak spells them — the module matches them case-sensitively and won't fix the casing for you. Get it wrong and you'll see `Cannot find info for cryptoAsset and fiatCurrency`.
 
 ```javascript
-await transak.buy({
+// ✅ Correct — values match Transak's conventions exactly
+await transak.quoteBuy({
+  cryptoAsset: 'USDT',              // upper-case symbol
+  fiatCurrency: 'USD',             // upper-case ISO 4217 code
+  network: 'ethereum',             // lower-case network name
+  paymentMethod: 'credit_debit_card', // lower-case identifier
+  fiatAmount: 100
+})
+
+// ❌ Wrong — the casing isn't fixed up for you, so this throws:
+// Cannot find info for cryptoAsset and fiatCurrency
+await transak.quoteBuy({
   cryptoAsset: 'usdt',
   fiatCurrency: 'usd',
-  fiatAmount: 100_00n,
-  config: { network: 'tron' }
+  network: 'Ethereum',
+  paymentMethod: 'credit_debit_card',
+  fiatAmount: 100
 })
 ```
 
-`getSupportedCryptoAssets()` exposes both the `code` and `networkCode` for every supported asset.
+| Field | Convention | Examples |
+|-------|-----------|----------|
+| `cryptoAsset` | Upper-case symbol | `ETH`, `USDT`, `USDC`, `BTC`, `SOL`, `BNB`, `XRP`, `TRX`, `DOGE`, `LTC` |
+| `fiatCurrency` | Upper-case ISO 4217 code | `USD`, `EUR`, `GBP`, `CHF`, `SEK`, `PLN`, `NOK`, `DKK` |
+| `network` | Lower-case network name | `ethereum`, `tron`, `solana`, `bsc`, `polygon`, `mainnet` (BTC/LTC/XRP/DOGE) |
+| `paymentMethod` | Lower-case identifier | `credit_debit_card`, `sepa_bank_transfer`, `gbp_bank_transfer`, `apple_pay`, `google_pay`, `pm_open_banking`, `pm_wire` |
+
+> These are just examples. The real list depends on your Transak account and the user's country, so fetch it at runtime (see below) instead of hard-coding values.
+
+### Finding the exact values
+
+Call `getSupportedCryptoAssets()` and `getSupportedFiatCurrencies()` to get the exact values. Each crypto asset gives you its `code` (the `cryptoAsset` symbol) and `networkCode` (the `network`):
+
+```javascript
+const assets = await transak.getSupportedCryptoAssets()
+// [
+//   { code: 'ETH',  networkCode: 'ethereum', decimals: 18, name: 'Ethereum', metadata: { … } },
+//   { code: 'USDT', networkCode: 'ethereum', decimals: 6,  name: 'Tether USD', metadata: { … } },
+//   { code: 'USDT', networkCode: 'tron',     decimals: 6,  name: 'Tether USD', metadata: { … } },
+//   …
+// ]
+
+const currencies = await transak.getSupportedFiatCurrencies()
+// [
+//   { code: 'USD', decimals: 2, name: 'US Dollar', metadata: { … } },
+//   { code: 'EUR', decimals: 2, name: 'Euro',      metadata: { … } },
+//   …
+// ]
+```
+
+**Payment methods** come from each fiat currency's `metadata.paymentOptions` array — use the `id` of the option you want:
+
+```javascript
+const [usd] = (await transak.getSupportedFiatCurrencies()).filter(c => c.code === 'USD')
+const paymentMethods = usd.metadata.paymentOptions.map(o => o.id)
+// e.g. ['credit_debit_card', 'apple_pay', 'google_pay', 'pm_wire', …]
+```
+
+### Assets on multiple networks
+
+Transak identifies an asset by symbol **and** network, so a symbol like `USDT` can exist on several chains (`ethereum`, `tron`, `solana`, …). Pass the `network` to pick the right one:
+
+- **`quoteBuy` / `quoteSell`** — `network` is **required**.
+- **`buy` / `sell`** — `network` is optional in `config`; when omitted the module uses the **first** matching entry from the supported-crypto list. Pass `config.network` to disambiguate:
+
+```javascript
+await transak.buy({
+  cryptoAsset: 'USDT',
+  fiatCurrency: 'USD',
+  fiatAmount: 100,
+  config: { network: 'tron' }
+})
+```
 
 ## 📚 API Reference
 
@@ -180,7 +251,7 @@ Parameters:
 - `account` (IWalletAccount | IWalletAccountReadOnly | undefined): The wallet account to bind to the protocol. Used only by `buy`/`sell` to auto-fill the wallet address when `recipient`/`refundAddress` is omitted. Pass `undefined` for an unbound instance. See [Choosing an account type](#choosing-an-account-type).
 - `config` (object): The protocol config
   - `apiKey` (string): Your Transak partner API key.
-  - `widgetUrl` (function, optional): Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the direct query-parameter URL.
+  - `widgetUrl` (function, optional): A callback that takes the generated URL and returns a session-based Transak widget URL. Implement it on your backend by calling Transak's Create Widget URL API (which needs your API secret). If omitted, the plain query-parameter URL is returned.
   - `cacheTime` (number, optional): The duration in milliseconds to cache supported currencies.
   - `environment` ("PRODUCTION" | "STAGING", optional): The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
 
@@ -190,8 +261,8 @@ Parameters:
 |--------|-------------|---------|
 | `buy(options)` | Generates a widget URL to purchase crypto | `Promise<BuyResult>` |
 | `sell(options)` | Generates a widget URL to sell crypto | `Promise<SellResult>` |
-| `quoteBuy(options)` | Gets a quote for a crypto asset purchase | `Promise<TransakBuyQuote>` |
-| `quoteSell(options)` | Gets a quote for a crypto asset sale | `Promise<TransakSellQuote>` |
+| `quoteBuy(config)` | Gets a quote for a crypto asset purchase | `Promise<TransakBuyQuote>` |
+| `quoteSell(config)` | Gets a quote for a crypto asset sale | `Promise<TransakSellQuote>` |
 | `getTransactionDetail(txId)` | Retrieves the details of an order | `Promise<TransakTransactionDetail>` |
 | `getSupportedCryptoAssets()` | Retrieves a list of supported crypto assets | `Promise<TransakSupportedCryptoAsset[]>` |
 | `getSupportedFiatCurrencies()` | Retrieves a list of supported fiat currencies | `Promise<TransakSupportedFiatCurrency[]>` |
@@ -201,10 +272,10 @@ Parameters:
 Generates a widget URL to purchase crypto.
 
 Options:
-- `fiatCurrency` (string): The fiat currency code (e.g., 'usd').
-- `cryptoAsset` (string): The crypto asset code (e.g., 'eth').
-- `fiatAmount` (number | bigint, optional): The amount in fiat currency, in its smallest unit.
-- `cryptoAmount` (number | bigint, optional): The amount in crypto asset, in its base unit.
+- `fiatCurrency` (string): The fiat currency code (e.g., 'USD').
+- `cryptoAsset` (string): The crypto asset code (e.g., 'ETH').
+- `fiatAmount` (number, optional): The fiat amount, as a decimal in standard units (e.g. `100.5`).
+- `cryptoAmount` (number, optional): The crypto amount, as a decimal in standard units (e.g. `0.1`).
 - `recipient` (string, optional): The wallet address to receive funds. If not provided, uses the account address.
 - `config` (object, optional): Additional Transak widget parameters (including `network`).
 
@@ -212,31 +283,30 @@ Options:
 Generates a widget URL to sell crypto.
 
 Options:
-- `fiatCurrency` (string): The fiat currency code (e.g., 'usd').
-- `cryptoAsset` (string): The crypto asset code (e.g., 'eth').
-- `fiatAmount` (number | bigint, optional): The amount in fiat currency, in its smallest unit.
-- `cryptoAmount` (number | bigint, optional): The amount in crypto asset, in its base unit.
+- `fiatCurrency` (string): The fiat currency code (e.g., 'USD').
+- `cryptoAsset` (string): The crypto asset code (e.g., 'ETH').
+- `fiatAmount` (number, optional): The fiat amount, as a decimal in standard units (e.g. `100.5`).
+- `cryptoAmount` (number, optional): The crypto amount, as a decimal in standard units (e.g. `0.1`).
 - `refundAddress` (string, optional): The wallet address for refunds. If not provided, uses the account address.
 - `config` (object, optional): Additional Transak widget parameters (including `network`).
 
-#### `quoteBuy(options)`
-Gets a quote for a crypto asset purchase.
+#### `quoteBuy(config)`
+Gets a quote for a crypto asset purchase. Takes a single `TransakQuoteBuyParams` object (not an options wrapper):
 
-Options:
-- `fiatCurrency` (string): The fiat currency code.
-- `cryptoAsset` (string): The crypto asset code.
-- `fiatAmount` (number | bigint, optional): The amount in fiat currency, in its smallest unit.
-- `cryptoAmount` (number | bigint, optional): The amount in crypto asset, in its base unit.
-- `config` (object, optional): Additional Transak quote parameters (`paymentMethod`, `network`, `quoteCountryCode`).
+- `cryptoAsset` (string, **required**): The crypto asset code (e.g. `'ETH'`).
+- `fiatCurrency` (string, **required**): The fiat currency code (e.g. `'USD'`).
+- `fiatAmount` (number, **required**): The fiat amount, as a decimal in standard units (e.g. `100.5`).
+- `paymentMethod` (string, **required**): The payment method to price the quote against (e.g. `'credit_debit_card'`).
+- `network` (string, **required**): The network of the crypto currency (e.g. `'ethereum'`).
 
-#### `quoteSell(options)`
-Gets a quote for a crypto asset sale.
+#### `quoteSell(config)`
+Gets a quote for a crypto asset sale. Takes a single `TransakQuoteSellParams` object (not an options wrapper):
 
-Options:
-- `fiatCurrency` (string): The fiat currency code.
-- `cryptoAsset` (string): The crypto asset code.
-- `cryptoAmount` (number | bigint): The amount in crypto asset, in its base unit (Required).
-- `config` (object, optional): Additional Transak quote parameters (`paymentMethod`, `network`, `quoteCountryCode`).
+- `cryptoAsset` (string, **required**): The crypto asset code (e.g. `'ETH'`).
+- `fiatCurrency` (string, **required**): The fiat currency code (e.g. `'USD'`).
+- `cryptoAmount` (number, **required**): The crypto amount, as a decimal in standard units (e.g. `0.1`).
+- `paymentMethod` (string, **required**): The payout method to price the quote against (e.g. `'sepa_bank_transfer'`).
+- `network` (string, **required**): The network of the crypto currency (e.g. `'ethereum'`).
 
 #### `getTransactionDetail(txId)`
 Retrieves the details of an order.
@@ -245,25 +315,24 @@ Parameters:
 - `txId` (string): The Transak order ID.
 
 #### `getSupportedCryptoAssets()`
-Retrieves a list of supported crypto assets.
+Retrieves a list of supported crypto assets. Each entry: `{ code, networkCode, decimals, name, metadata }`, where `code` is the `cryptoAsset` symbol and `networkCode` is the `network` — use both exactly as returned (see [Values & Conventions](#-values--conventions)). The full Transak object is under `metadata`.
 
 #### `getSupportedFiatCurrencies()`
-Retrieves a list of supported fiat currencies.
+Retrieves a list of supported fiat currencies. Each entry: `{ code, decimals, name, metadata }`, where `code` is the `fiatCurrency` code. Available `paymentMethod` identifiers are found in `metadata.paymentOptions[].id`.
 
 #### `getSupportedCountries()`
-Retrieves a list of supported countries.
+Retrieves a list of supported countries. Each entry: `{ code, isBuyAllowed, isSellAllowed, name, metadata }`.
 
 ## 📝 Notes
 
-- Works with networks and currencies supported by Transak.
-- Check the Transak documentation for the full list of widget parameters, supported cryptocurrencies and regions.
-- The package provides the baseline for Transak integration. To fully utilize the power of the Transak widget, take a look at the [Transak query parameters documentation](https://docs.transak.com/customization/query-parameters) for the full list of parameters.
-- The `apiKey` can be retrieved through the [Transak Partner dashboard](https://dashboard.transak.com/).
-- It is highly recommended to test the entire buy/sell flow in the `STAGING` environment.
+- Works with the networks and currencies your Transak account supports.
+- This package covers the basics. For the full list of widget parameters, see the [Transak query parameters docs](https://docs.transak.com/customization/query-parameters).
+- Get your `apiKey` from the [Transak Partner dashboard](https://dashboard.transak.com/).
+- Test the full buy/sell flow in the `STAGING` environment before going live.
 
 ## 🔒 Security Considerations
 
-- Keep your Transak API secret / access token safe on your backend. Expose a backend API to clients, and have `widgetUrl` call that API (which calls Transak's Create Widget URL API) to retrieve the secure widget URL. See [Transak's migration to API-based widget URLs](https://docs.transak.com/guides/migration-to-api-based-transak-widget-url).
+- Keep your Transak API secret on your backend, never in client code. Expose a small backend endpoint that calls Transak's Create Widget URL API, and have your `widgetUrl` callback call that endpoint. See [Transak's migration to API-based widget URLs](https://docs.transak.com/guides/migration-to-api-based-transak-widget-url).
 
 ## 🛠️ Development
 
