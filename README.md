@@ -47,7 +47,8 @@ const widgetUrl = async (url) => {
   return widgetUrl
 }
 
-// Initialize protocol
+// Initialize protocol without a wallet account.
+// You then pass `recipient`/`refundAddress` explicitly on buy/sell (see below).
 const transak = new TransakProtocol(undefined, {
   apiKey: 'YOUR_TRANSAK_PARTNER_KEY',
   widgetUrl,
@@ -86,6 +87,56 @@ const { sellUrl } = await transak.sell({
   refundAddress: '0xabc'
 })
 ```
+
+### Using a Wallet Account
+
+The first constructor argument is an optional WDK wallet account. When you bind one, `buy` and `sell` automatically use the account's address, so you don't need to pass `recipient`/`refundAddress` on every call:
+
+```javascript
+import TransakProtocol from '@tetherto/wdk-protocol-fiat-transak'
+
+// `walletManager` is your app's WDK wallet manager (chain-specific).
+// getAccount() returns an IWalletAccount exposing getAddress().
+const account = await walletManager.getAccount(0)
+
+const transak = new TransakProtocol(account, {
+  apiKey: 'YOUR_TRANSAK_PARTNER_KEY',
+  widgetUrl,
+  environment: 'STAGING'
+})
+
+// No `recipient` needed — the account's address is filled in automatically.
+const { buyUrl } = await transak.buy({
+  fiatCurrency: 'usd',
+  cryptoAsset: 'eth',
+  fiatAmount: 100_00n
+})
+
+// Likewise, no `refundAddress` needed for sell.
+const { sellUrl } = await transak.sell({
+  fiatCurrency: 'usd',
+  cryptoAsset: 'eth',
+  cryptoAmount: 100_000_000_000_000_000n
+})
+
+// An explicit recipient/refundAddress still wins over the account address:
+const { buyUrl: toOther } = await transak.buy({
+  fiatCurrency: 'usd',
+  cryptoAsset: 'eth',
+  fiatAmount: 100_00n,
+  recipient: '0xSomeOtherAddress'
+})
+```
+
+#### Choosing an account type
+
+The `account` argument accepts three forms:
+
+- **`undefined`** — no wallet is bound. Pass `recipient`/`refundAddress` explicitly on `buy`/`sell`, or omit them to let the Transak widget prompt the user for the address. Ideal for quotes, backend/server usage, or when the destination address comes from elsewhere.
+- **`IWalletAccountReadOnly`** — a read-only account. Its `getAddress()` is used to pre-fill the wallet address on `buy`/`sell`.
+- **`IWalletAccount`** — a full wallet account. Behaves the same as a read-only account here, since the fiat on/off-ramp flow does not sign transactions (the Transak widget handles the crypto side).
+
+Only `buy` and `sell` read the account — and only to derive the wallet address when you don't pass one. `quoteBuy`, `quoteSell`, `getTransactionDetail`, and the `getSupported*` methods never use it, so `undefined` is sufficient for those.
 
 ## 💱 Amounts & Units
 
@@ -126,7 +177,7 @@ new TransakProtocol(account, config)
 ```
 
 Parameters:
-- `account` (IWalletAccount | IWalletAccountReadOnly | undefined): The wallet account to use to interact with the protocol.
+- `account` (IWalletAccount | IWalletAccountReadOnly | undefined): The wallet account to bind to the protocol. Used only by `buy`/`sell` to auto-fill the wallet address when `recipient`/`refundAddress` is omitted. Pass `undefined` for an unbound instance. See [Choosing an account type](#choosing-an-account-type).
 - `config` (object): The protocol config
   - `apiKey` (string): Your Transak partner API key.
   - `widgetUrl` (function, optional): Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the direct query-parameter URL.
