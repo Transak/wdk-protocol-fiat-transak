@@ -29,13 +29,15 @@ npm install @tetherto/wdk-protocol-fiat-transak
 ```javascript
 import TransakProtocol from '@tetherto/wdk-protocol-fiat-transak'
 
-const widgetUrl = async (url) => {
+// `widgetUrl` receives the assembled widgetParams and returns a widget URL.
+// Do the session creation on your backend, where your API secret lives.
+const widgetUrl = async (widgetParams) => {
   const response = await fetch('https://your-backend.example.com/transak/widget-url', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ url })
+    body: JSON.stringify({ widgetParams })
   })
 
   if (!response.ok) {
@@ -251,7 +253,7 @@ Parameters:
 - `account` (IWalletAccount | IWalletAccountReadOnly | undefined): The wallet account to bind to the protocol. Used only by `buy`/`sell` to auto-fill the wallet address when `recipient`/`refundAddress` is omitted. Pass `undefined` for an unbound instance. See [Choosing an account type](#choosing-an-account-type).
 - `config` (object): The protocol config
   - `apiKey` (string): Your Transak partner API key.
-  - `widgetUrl` (function, optional): A callback that takes the generated URL and returns a session-based Transak widget URL. Implement it on your backend by calling Transak's Create Widget URL API (which needs your API secret). If omitted, the plain query-parameter URL is returned.
+  - `widgetUrl` (function, required for `buy`/`sell`): A callback that receives the assembled `widgetParams` object and returns a Transak widget URL. Implement it on your backend by calling Transak's Create Widget URL API (which needs your API secret). `buy` and `sell` throw if it isn't provided; `quoteBuy`, `quoteSell`, and the `getSupported*` methods don't need it.
   - `cacheTime` (number, optional): The duration in milliseconds to cache supported currencies.
   - `environment` ("PRODUCTION" | "STAGING", optional): The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
 
@@ -330,9 +332,36 @@ Retrieves a list of supported countries. Each entry: `{ code, isBuyAllowed, isSe
 - Get your `apiKey` from the [Transak Partner dashboard](https://dashboard.transak.com/).
 - Test the full buy/sell flow in the `STAGING` environment before going live.
 
-## 🔒 Security Considerations
+## 🔒 Creating the widget URL (backend)
 
-- Keep your Transak API secret on your backend, never in client code. Expose a small backend endpoint that calls Transak's Create Widget URL API, and have your `widgetUrl` callback call that endpoint. See [Transak's migration to API-based widget URLs](https://docs.transak.com/guides/migration-to-api-based-transak-widget-url).
+`buy` and `sell` build a `widgetParams` object and hand it to your `widgetUrl` callback. That callback runs on your backend, where your API secret is safe, and turns the params into a widget URL using Transak's [API-based flow](https://docs.transak.com/guides/migration-to-api-based-transak-widget-url) (passing params directly in the URL is deprecated). It's two calls:
+
+```javascript
+// On your backend — never ship the API secret to the client.
+async function createWidgetUrl (widgetParams) {
+  // 1. Get a partner access token (cache it until it expires).
+  const tokenRes = await fetch('https://api.transak.com/partners/api/v2/refresh-token', {
+    method: 'POST',
+    headers: { 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json' },
+    body: JSON.stringify({ apiKey: process.env.TRANSAK_API_KEY })
+  })
+  const { data: { accessToken } } = await tokenRes.json()
+
+  // 2. Create the widget session and return its URL.
+  const sessionRes = await fetch('https://api-gateway.transak.com/api/v2/auth/session', {
+    method: 'POST',
+    headers: { 'access-token': accessToken, 'content-type': 'application/json' },
+    body: JSON.stringify({ widgetParams })
+  })
+  const { data: { widgetUrl } } = await sessionRes.json()
+  return widgetUrl // valid for 5 minutes, single use
+}
+```
+
+Notes:
+- Keep the API secret on the backend, never in client code.
+- The returned widget URL is valid for **5 minutes** and each session can be used **once** — create a fresh one per flow.
+- For staging, use `https://api-stg.transak.com` and `https://api-gateway-stg.transak.com`.
 
 ## 🛠️ Development
 

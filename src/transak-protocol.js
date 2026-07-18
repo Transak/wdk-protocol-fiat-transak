@@ -255,9 +255,24 @@ import BigNumber from 'bignumber.js'
 /** @typedef {SellOptions & { config?: TransakSellParams }} TransakSellOptions */
 
 /**
+ * The assembled Transak widget parameters passed to the `widgetUrl` callback — send
+ * this object as `widgetParams` to Transak's Create Widget URL API. It also carries
+ * any widget UI fields supplied via the buy/sell `config`.
+ * @typedef {Object} TransakWidgetParams
+ * @property {string} apiKey - Your Transak partner API key.
+ * @property {'BUY' | 'SELL'} productsAvailed - The flow direction.
+ * @property {string} cryptoCurrencyCode - The crypto asset symbol (e.g. 'ETH').
+ * @property {string} network - The network the asset lives on (e.g. 'ethereum').
+ * @property {string} fiatCurrency - The fiat currency code (e.g. 'USD').
+ * @property {number} [fiatAmount] - The fiat amount, as a decimal in standard units.
+ * @property {number} [cryptoAmount] - The crypto amount, as a decimal in standard units.
+ * @property {string} [walletAddress] - The destination (buy) or source (sell) wallet address.
+ */
+
+/**
  * @typedef {Object} TransakProtocolConfig
  * @property {string} apiKey - Your Transak partner API key.
- * @property {(url: string) => Promise<string>} [widgetUrl] - Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the unsigned query-parameter URL.
+ * @property {(widgetParams: TransakWidgetParams) => Promise<string>} [widgetUrl] - Required by `buy`/`sell`. Receives the assembled `widgetParams` object and must return a session-based widget URL. Create it on your backend by calling Transak's Create Widget URL API (which needs your API secret). `buy`/`sell` throw if it is not provided.
  * @property {number} [cacheTime] - The duration in milliseconds to cache supported currencies.
  * @property {"PRODUCTION" | "STAGING"} [environment] - The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
  */
@@ -305,10 +320,6 @@ const TRANSAK_ORIGINS = {
   API: {
     PRODUCTION: 'https://api.transak.com/',
     STAGING: 'https://api-stg.transak.com/'
-  },
-  WIDGET: {
-    PRODUCTION: 'https://global.transak.com/',
-    STAGING: 'https://global-stg.transak.com/'
   }
 }
 const TRANSAK_CACHE_TIME = 10 * 60 * 1000
@@ -364,11 +375,6 @@ export default class TransakProtocol extends FiatProtocol {
     return TRANSAK_ORIGINS.API[this._environment]
   }
 
-  /** @private */
-  get _widgetOrigin () {
-    return TRANSAK_ORIGINS.WIDGET[this._environment]
-  }
-
   /**
    * Resolves the Transak crypto asset and fiat currency details for the given codes.
    * Codes are matched case-sensitively against Transak's conventions, exactly as
@@ -408,9 +414,13 @@ export default class TransakProtocol extends FiatProtocol {
   async buy (options) {
     const { cryptoAsset, fiatCurrency, recipient, config } = options
 
+    if (!this._widgetUrl) {
+      throw new Error('A \'widgetUrl\' callback is required to create a Transak widget URL')
+    }
+
     const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
 
-    const params = {
+    const widgetParams = {
       ...config,
       apiKey: this._apiKey,
       productsAvailed: 'BUY',
@@ -424,36 +434,20 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     if ('cryptoAmount' in options) {
-      params.cryptoAmount = new BigNumber(options.cryptoAmount).toFixed()
+      widgetParams.cryptoAmount = options.cryptoAmount
     } else if ('fiatAmount' in options) {
-      params.fiatAmount = new BigNumber(options.fiatAmount).toFixed()
+      widgetParams.fiatAmount = options.fiatAmount
     } else {
       throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     }
 
     if (recipient) {
-      params.walletAddress = recipient
+      widgetParams.walletAddress = recipient
     } else if (this._account) {
-      params.walletAddress = await this._account.getAddress()
+      widgetParams.walletAddress = await this._account.getAddress()
     }
 
-    const url = new URL('/', this._widgetOrigin)
-
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        url.searchParams.append(key, value)
-      }
-    })
-
-    const generatedUrl = url.toString()
-
-    if (!this._widgetUrl) {
-      return {
-        buyUrl: generatedUrl
-      }
-    }
-
-    const buyUrl = await this._widgetUrl(generatedUrl)
+    const buyUrl = await this._widgetUrl(widgetParams)
 
     return {
       buyUrl
@@ -547,9 +541,13 @@ export default class TransakProtocol extends FiatProtocol {
   async sell (options) {
     const { cryptoAsset, fiatCurrency, refundAddress, config } = options
 
+    if (!this._widgetUrl) {
+      throw new Error('A \'widgetUrl\' callback is required to create a Transak widget URL')
+    }
+
     const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
 
-    const params = {
+    const widgetParams = {
       ...config,
       apiKey: this._apiKey,
       productsAvailed: 'SELL',
@@ -563,36 +561,20 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     if ('cryptoAmount' in options) {
-      params.cryptoAmount = new BigNumber(options.cryptoAmount).toFixed()
+      widgetParams.cryptoAmount = options.cryptoAmount
     } else if ('fiatAmount' in options) {
-      params.fiatAmount = new BigNumber(options.fiatAmount).toFixed()
+      widgetParams.fiatAmount = options.fiatAmount
     } else {
       throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     }
 
     if (refundAddress) {
-      params.walletAddress = refundAddress
+      widgetParams.walletAddress = refundAddress
     } else if (this._account) {
-      params.walletAddress = await this._account.getAddress()
+      widgetParams.walletAddress = await this._account.getAddress()
     }
 
-    const url = new URL('/', this._widgetOrigin)
-
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        url.searchParams.append(key, value)
-      }
-    })
-
-    const generatedUrl = url.toString()
-
-    if (!this._widgetUrl) {
-      return {
-        sellUrl: generatedUrl
-      }
-    }
-
-    const sellUrl = await this._widgetUrl(generatedUrl)
+    const sellUrl = await this._widgetUrl(widgetParams)
 
     return {
       sellUrl

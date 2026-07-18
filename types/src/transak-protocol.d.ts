@@ -37,8 +37,6 @@ export default class TransakProtocol extends FiatProtocol {
     private _cacheThreshold;
     /** @private */
     private get _apiOrigin();
-    /** @private */
-    private get _widgetOrigin();
     /**
      * Resolves the Transak crypto asset and fiat currency details for the given codes.
      * Codes are matched case-sensitively against Transak's conventions, exactly as
@@ -751,15 +749,54 @@ export type TransakSellQuote = FiatQuote & {
 export type TransakSellOptions = SellOptions & {
     config?: TransakSellParams;
 };
+/**
+ * The assembled Transak widget parameters passed to the `widgetUrl` callback — send
+ * this object as `widgetParams` to Transak's Create Widget URL API. It also carries
+ * any widget UI fields supplied via the buy/sell `config`.
+ */
+export type TransakWidgetParams = {
+    /**
+     * - Your Transak partner API key.
+     */
+    apiKey: string;
+    /**
+     * - The flow direction.
+     */
+    productsAvailed: "BUY" | "SELL";
+    /**
+     * - The crypto asset symbol (e.g. 'ETH').
+     */
+    cryptoCurrencyCode: string;
+    /**
+     * - The network the asset lives on (e.g. 'ethereum').
+     */
+    network: string;
+    /**
+     * - The fiat currency code (e.g. 'USD').
+     */
+    fiatCurrency: string;
+    /**
+     * - The fiat amount, as a decimal in standard units.
+     */
+    fiatAmount?: number;
+    /**
+     * - The crypto amount, as a decimal in standard units.
+     */
+    cryptoAmount?: number;
+    /**
+     * - The destination (buy) or source (sell) wallet address.
+     */
+    walletAddress?: string;
+};
 export type TransakProtocolConfig = {
     /**
      * - Your Transak partner API key.
      */
     apiKey: string;
     /**
-     * - Callback used to turn the generated widget URL into a secure, session-based Transak widget URL via a trusted provider (e.g. a backend service that calls Transak's Create Widget URL API). If not provided, the protocol returns the unsigned query-parameter URL.
+     * - Required by `buy`/`sell`. Receives the assembled `widgetParams` object and must return a session-based widget URL. Create it on your backend by calling Transak's Create Widget URL API (which needs your API secret). `buy`/`sell` throw if it is not provided.
      */
-    widgetUrl?: (url: string) => Promise<string>;
+    widgetUrl?: (widgetParams: TransakWidgetParams) => Promise<string>;
     /**
      * - The duration in milliseconds to cache supported currencies.
      */

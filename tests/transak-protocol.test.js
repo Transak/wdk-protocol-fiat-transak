@@ -4,9 +4,12 @@ import TransakProtocol from '../src/transak-protocol.js'
 
 const widgetUrl = jest.fn()
 
-const MOCK_API_KEY = 'pk_test_123'
-const MOCK_WIDGET_URL = 'MOCK_WIDGET_URL'
-const MOCK_ACCOUNT_ADDRESS = 'MOCK_ACCOUNT_ADDRESS'
+// Transak partner API keys are UUIDs (from the Transak Partner dashboard).
+const MOCK_API_KEY = '4fcd6904-706b-4aff-bd9d-77422813bbb7'
+// The session-based widget URL Transak's Create Widget URL API returns.
+const MOCK_WIDGET_URL = 'https://global-stg.transak.com/?apiKey=4fcd6904-706b-4aff-bd9d-77422813bbb7&sessionId=b8f4e2a1-9c3d-4e6f-8a1b-2c3d4e5f6a7b'
+// The account's on-chain wallet address (EVM checksum format).
+const MOCK_ACCOUNT_ADDRESS = '0x71C7656EC7ab88b098defB751B7401B5f6d8976F'
 
 const MOCK_CRYPTO = [
   { symbol: 'ETH', name: 'Ethereum', decimals: 18, roundOff: 5, network: { name: 'ethereum', chainId: 1 }, isAllowed: true, uniqueId: 'ETHethereum' },
@@ -56,50 +59,49 @@ describe('TransakProtocol', () => {
   })
 
   describe('buy', () => {
-    test('should successfully generate a buy URL to buy an exact crypto amount', async () => {
+    test('should pass the widgetParams for an exact crypto amount to the widgetUrl callback', async () => {
       widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
       global.fetch = createFetchMock()
 
-      const { buyUrl } = await transak.buy({
+      const result = await transak.buy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
         cryptoAmount: 1
       })
 
-      const [[params]] = widgetUrl.mock.calls
+      const [[widgetParams]] = widgetUrl.mock.calls
 
-      expect(new URL(params).origin).toBe('https://global-stg.transak.com')
-      expect(Object.fromEntries(new URL(params).searchParams)).toMatchObject({
+      expect(widgetParams).toMatchObject({
         apiKey: MOCK_API_KEY,
         productsAvailed: 'BUY',
         cryptoCurrencyCode: 'ETH',
         network: 'ethereum',
         fiatCurrency: 'USD',
-        cryptoAmount: '1'
+        cryptoAmount: 1
       })
-      expect(buyUrl).toBe(MOCK_WIDGET_URL)
+      expect(result).toEqual({ buyUrl: MOCK_WIDGET_URL })
     })
 
-    test('should successfully generate a buy URL to buy with a specified fiat amount', async () => {
+    test('should pass the widgetParams for a specified fiat amount to the widgetUrl callback', async () => {
       widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
       global.fetch = createFetchMock()
 
-      const { buyUrl } = await transak.buy({
+      const result = await transak.buy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
         fiatAmount: 1000 // 1000 USD
       })
 
-      const [[params]] = widgetUrl.mock.calls
+      const [[widgetParams]] = widgetUrl.mock.calls
 
-      expect(Object.fromEntries(new URL(params).searchParams)).toMatchObject({
+      expect(widgetParams).toMatchObject({
         apiKey: MOCK_API_KEY,
         productsAvailed: 'BUY',
         cryptoCurrencyCode: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: '1000'
+        fiatAmount: 1000
       })
-      expect(buyUrl).toBe(MOCK_WIDGET_URL)
+      expect(result).toEqual({ buyUrl: MOCK_WIDGET_URL })
     })
 
     test('should resolve the network from config when the symbol is ambiguous', async () => {
@@ -113,46 +115,25 @@ describe('TransakProtocol', () => {
         config: { network: 'tron' }
       })
 
-      const [[params]] = widgetUrl.mock.calls
+      const [[widgetParams]] = widgetUrl.mock.calls
 
-      expect(Object.fromEntries(new URL(params).searchParams)).toMatchObject({
+      expect(widgetParams).toMatchObject({
         cryptoCurrencyCode: 'USDT',
         network: 'tron'
       })
     })
 
-    test('should return an unsigned URL when widgetUrl is not provided', async () => {
+    test('should throw when widgetUrl is not provided', async () => {
       global.fetch = createFetchMock()
 
-      const noSign = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY, environment: 'STAGING' })
-      const { buyUrl } = await noSign.buy({
+      const noWidgetUrl = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY, environment: 'STAGING' })
+
+      await expect(noWidgetUrl.buy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
         fiatAmount: 1000
-      })
-
+      })).rejects.toThrow('A \'widgetUrl\' callback is required to create a Transak widget URL')
       expect(widgetUrl).not.toHaveBeenCalled()
-      expect(new URL(buyUrl).origin).toBe('https://global-stg.transak.com')
-      expect(Object.fromEntries(new URL(buyUrl).searchParams)).toMatchObject({
-        apiKey: MOCK_API_KEY,
-        cryptoCurrencyCode: 'ETH',
-        fiatCurrency: 'USD',
-        fiatAmount: '1000'
-      })
-    })
-
-    test('should use the production widget origin by default', async () => {
-      global.fetch = createFetchMock()
-
-      const prod = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY })
-      const { buyUrl } = await prod.buy({
-        cryptoAsset: 'ETH',
-        fiatCurrency: 'USD',
-        fiatAmount: 1000
-      })
-
-      expect(new URL(buyUrl).origin).toBe('https://global.transak.com')
-      expect(findCall('api.transak.com')).toBeDefined()
     })
 
     test('should use the recipient wallet address when provided', async () => {
@@ -163,11 +144,11 @@ describe('TransakProtocol', () => {
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
         fiatAmount: 1000,
-        recipient: '0xabc'
+        recipient: '0x8ba1f109551bD432803012645Ac136ddd64DBA72'
       })
 
-      const [[params]] = widgetUrl.mock.calls
-      expect(Object.fromEntries(new URL(params).searchParams).walletAddress).toBe('0xabc')
+      const [[widgetParams]] = widgetUrl.mock.calls
+      expect(widgetParams.walletAddress).toBe('0x8ba1f109551bD432803012645Ac136ddd64DBA72')
     })
 
     test('should use the account wallet address when no recipient is provided', async () => {
@@ -181,9 +162,9 @@ describe('TransakProtocol', () => {
         fiatAmount: 1000
       })
 
-      const [[params]] = widgetUrl.mock.calls
+      const [[widgetParams]] = widgetUrl.mock.calls
       expect(mockAccount.getAddress).toHaveBeenCalled()
-      expect(Object.fromEntries(new URL(params).searchParams).walletAddress).toBe(MOCK_ACCOUNT_ADDRESS)
+      expect(widgetParams.walletAddress).toBe(MOCK_ACCOUNT_ADDRESS)
     })
 
     test('should throw when both cryptoAmount and fiatAmount are provided', async () => {
@@ -218,28 +199,68 @@ describe('TransakProtocol', () => {
   })
 
   describe('sell', () => {
-    test('should successfully generate a sell URL to sell an exact crypto amount', async () => {
+    test('should pass the widgetParams for an exact crypto amount to the widgetUrl callback', async () => {
       widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
       global.fetch = createFetchMock()
 
-      const { sellUrl } = await transak.sell({
+      const result = await transak.sell({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
         cryptoAmount: 1
       })
 
-      const [[params]] = widgetUrl.mock.calls
+      const [[widgetParams]] = widgetUrl.mock.calls
 
-      expect(new URL(params).origin).toBe('https://global-stg.transak.com')
-      expect(Object.fromEntries(new URL(params).searchParams)).toMatchObject({
+      expect(widgetParams).toMatchObject({
         apiKey: MOCK_API_KEY,
         productsAvailed: 'SELL',
         cryptoCurrencyCode: 'ETH',
         network: 'ethereum',
         fiatCurrency: 'USD',
-        cryptoAmount: '1'
+        cryptoAmount: 1
       })
-      expect(sellUrl).toBe(MOCK_WIDGET_URL)
+      expect(result).toEqual({ sellUrl: MOCK_WIDGET_URL })
+    })
+
+    test('should pass the widgetParams for a specified fiat amount to the widgetUrl callback', async () => {
+      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
+      global.fetch = createFetchMock()
+
+      const result = await transak.sell({
+        cryptoAsset: 'ETH',
+        fiatCurrency: 'USD',
+        fiatAmount: 1000 // 1000 USD
+      })
+
+      const [[widgetParams]] = widgetUrl.mock.calls
+
+      expect(widgetParams).toMatchObject({
+        apiKey: MOCK_API_KEY,
+        productsAvailed: 'SELL',
+        cryptoCurrencyCode: 'ETH',
+        fiatCurrency: 'USD',
+        fiatAmount: 1000
+      })
+      expect(result).toEqual({ sellUrl: MOCK_WIDGET_URL })
+    })
+
+    test('should resolve the network from config when the symbol is ambiguous', async () => {
+      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
+      global.fetch = createFetchMock()
+
+      await transak.sell({
+        cryptoAsset: 'USDT',
+        fiatCurrency: 'USD',
+        cryptoAmount: 1,
+        config: { network: 'tron' }
+      })
+
+      const [[widgetParams]] = widgetUrl.mock.calls
+
+      expect(widgetParams).toMatchObject({
+        cryptoCurrencyCode: 'USDT',
+        network: 'tron'
+      })
     })
 
     test('should use the refundAddress as the wallet address when provided', async () => {
@@ -250,11 +271,104 @@ describe('TransakProtocol', () => {
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
         cryptoAmount: 1,
-        refundAddress: '0xdef'
+        refundAddress: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8'
       })
 
-      const [[params]] = widgetUrl.mock.calls
-      expect(Object.fromEntries(new URL(params).searchParams).walletAddress).toBe('0xdef')
+      const [[widgetParams]] = widgetUrl.mock.calls
+      expect(widgetParams.walletAddress).toBe('0x2170Ed0880ac9A755fd29B2688956BD959F933F8')
+    })
+
+    test('should use the account wallet address when no refundAddress is provided', async () => {
+      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
+      global.fetch = createFetchMock()
+
+      transak = new TransakProtocol(mockAccount, config)
+      await transak.sell({
+        cryptoAsset: 'ETH',
+        fiatCurrency: 'USD',
+        cryptoAmount: 1
+      })
+
+      const [[widgetParams]] = widgetUrl.mock.calls
+      expect(mockAccount.getAddress).toHaveBeenCalled()
+      expect(widgetParams.walletAddress).toBe(MOCK_ACCOUNT_ADDRESS)
+    })
+
+    test('should throw when both cryptoAmount and fiatAmount are provided', async () => {
+      global.fetch = createFetchMock()
+
+      await expect(transak.sell({
+        cryptoAsset: 'ETH',
+        fiatCurrency: 'USD',
+        cryptoAmount: 1,
+        fiatAmount: 1
+      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+    })
+
+    test('should throw when neither cryptoAmount nor fiatAmount is provided', async () => {
+      global.fetch = createFetchMock()
+
+      await expect(transak.sell({
+        cryptoAsset: 'ETH',
+        fiatCurrency: 'USD'
+      })).rejects.toThrow('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
+    })
+
+    test('should throw when the crypto asset or fiat currency is unknown', async () => {
+      global.fetch = createFetchMock()
+
+      await expect(transak.sell({
+        cryptoAsset: 'DOGE',
+        fiatCurrency: 'USD',
+        cryptoAmount: 1
+      })).rejects.toThrow('Cannot find info for cryptoAsset and fiatCurrency')
+    })
+
+    test('should throw when widgetUrl is not provided', async () => {
+      global.fetch = createFetchMock()
+
+      const noWidgetUrl = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY, environment: 'STAGING' })
+
+      await expect(noWidgetUrl.sell({
+        cryptoAsset: 'ETH',
+        fiatCurrency: 'USD',
+        cryptoAmount: 1
+      })).rejects.toThrow('A \'widgetUrl\' callback is required to create a Transak widget URL')
+      expect(widgetUrl).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('environment', () => {
+    // `environment` selects the API origin used for every network call
+    // (quotes, order lookup, supported currencies/countries).
+    test('STAGING uses the staging API origin (api-stg.transak.com)', async () => {
+      global.fetch = createFetchMock()
+
+      const staging = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY, environment: 'STAGING' })
+      await staging.getSupportedCryptoAssets()
+
+      const [url] = findCall('crypto-currencies')
+      expect(new URL(url).origin).toBe('https://api-stg.transak.com')
+    })
+
+    test('PRODUCTION uses the production API origin (api.transak.com)', async () => {
+      global.fetch = createFetchMock()
+
+      const production = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY, environment: 'PRODUCTION' })
+      await production.getSupportedCryptoAssets()
+
+      const [url] = findCall('crypto-currencies')
+      expect(new URL(url).origin).toBe('https://api.transak.com')
+    })
+
+    test('defaults to PRODUCTION when environment is omitted', async () => {
+      global.fetch = createFetchMock()
+
+      const defaulted = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY })
+      await defaulted.getSupportedCryptoAssets()
+
+      const [url] = findCall('crypto-currencies')
+      expect(new URL(url).origin).toBe('https://api.transak.com')
     })
   })
 
@@ -297,11 +411,13 @@ describe('TransakProtocol', () => {
       // The raw cryptoAsset must not leak into the pricing query.
       expect(quoteParams.cryptoAsset).toBeUndefined()
 
-      expect(quote.cryptoAmount).toBe(500_000_000_000_000_000n) // 0.5 ETH
-      expect(quote.fiatAmount).toBe(1000_00n)
-      expect(quote.fee).toBe(5_00n)
-      expect(quote.rate).toBe('2000')
-      expect(quote.metadata).toEqual(MOCK_BUY_QUOTE)
+      expect(quote).toEqual({
+        cryptoAmount: 500_000_000_000_000_000n, // 0.5 ETH
+        fiatAmount: 1000_00n,
+        fee: 5_00n,
+        rate: '2000',
+        metadata: MOCK_BUY_QUOTE
+      })
     })
 
     test('should send x-api-key header on the quote request', async () => {
@@ -403,10 +519,13 @@ describe('TransakProtocol', () => {
         paymentMethod: 'sepa_bank_transfer'
       })
 
-      expect(quote.cryptoAmount).toBe(500_000_000_000_000_000n)
-      expect(quote.fiatAmount).toBe(995_00n)
-      expect(quote.fee).toBe(5_00n)
-      expect(quote.rate).toBe('2000')
+      expect(quote).toEqual({
+        cryptoAmount: 500_000_000_000_000_000n,
+        fiatAmount: 995_00n,
+        fee: 5_00n,
+        rate: '2000',
+        metadata: MOCK_SELL_QUOTE
+      })
     })
 
     test('should throw when cryptoAmount is not provided', async () => {
