@@ -57,39 +57,37 @@ const transak = new TransakProtocol(undefined, {
   environment: 'STAGING'
 })
 
-// Get a buy quote (cryptoAsset, fiatCurrency, fiatAmount, paymentMethod and network are all required)
+// Amounts are in base units: fiat in cents, crypto in wei.
+
+// Get a buy quote
 const buyQuote = await transak.quoteBuy({
   cryptoAsset: 'ETH',
   fiatCurrency: 'USD',
-  fiatAmount: 100, // 100 USD, as a decimal in standard units
-  paymentMethod: 'credit_debit_card',
-  network: 'ethereum'
+  fiatAmount: 10_000n // 100 USD (in cents)
 })
 
 // Generate a buy widget URL
 const { buyUrl } = await transak.buy({
-  fiatCurrency: 'USD',
   cryptoAsset: 'ETH',
-  fiatAmount: 100,
+  fiatCurrency: 'USD',
+  fiatAmount: 10_000n, // 100 USD (in cents)
   recipient: '0xabc'
 })
 
 console.log('Buy URL:', buyUrl)
 
-// Get a sell quote (cryptoAsset, fiatCurrency, cryptoAmount, paymentMethod and network are all required)
+// Get a sell quote
 const sellQuote = await transak.quoteSell({
   cryptoAsset: 'ETH',
   fiatCurrency: 'USD',
-  cryptoAmount: 0.1, // 0.1 ETH, as a decimal in standard units
-  paymentMethod: 'sepa_bank_transfer',
-  network: 'ethereum'
+  cryptoAmount: 100_000_000_000_000_000n // 0.1 ETH (in wei)
 })
 
 // Generate a sell widget URL
 const { sellUrl } = await transak.sell({
-  fiatCurrency: 'USD',
   cryptoAsset: 'ETH',
-  cryptoAmount: 0.1,
+  fiatCurrency: 'USD',
+  cryptoAmount: 100_000_000_000_000_000n, // 0.1 ETH (in wei)
   refundAddress: '0xabc'
 })
 ```
@@ -113,23 +111,23 @@ const transak = new TransakProtocol(account, {
 
 // No `recipient` needed — the account's address is filled in automatically.
 const { buyUrl } = await transak.buy({
-  fiatCurrency: 'USD',
   cryptoAsset: 'ETH',
-  fiatAmount: 100
+  fiatCurrency: 'USD',
+  fiatAmount: 10_000n // 100 USD (in cents)
 })
 
 // Likewise, no `refundAddress` needed for sell.
 const { sellUrl } = await transak.sell({
-  fiatCurrency: 'USD',
   cryptoAsset: 'ETH',
-  cryptoAmount: 0.1
+  fiatCurrency: 'USD',
+  cryptoAmount: 100_000_000_000_000_000n // 0.1 ETH (in wei)
 })
 
 // An explicit recipient/refundAddress still wins over the account address:
 const { buyUrl: toOther } = await transak.buy({
-  fiatCurrency: 'USD',
   cryptoAsset: 'ETH',
-  fiatAmount: 100,
+  fiatCurrency: 'USD',
+  fiatAmount: 10_000n,
   recipient: '0xSomeOtherAddress'
 })
 ```
@@ -146,17 +144,12 @@ Only `buy` and `sell` use the account, and only to fill in the wallet address wh
 
 ## 💱 Amounts & Units
 
-**Inputs** — `fiatAmount` and `cryptoAmount` are passed as **decimals in standard units**, matching Transak's API (not WDK base units):
+Following the WDK `FiatProtocol` contract, all amounts cross the interface in **base units** (the smallest unit of the currency/asset), as `number` or `bigint` — for both inputs and quote outputs. This is the same convention as the other WDK fiat modules (e.g. MoonPay), so the same call means the same thing across providers.
 
-- `fiatAmount` — e.g. `100` or `100.5` for 100.50 USD.
-- `cryptoAmount` — e.g. `0.1` for 0.1 ETH.
+- `fiatAmount` — the currency's minor unit (cents). `10_000n` = **$100** (10,000 cents).
+- `cryptoAmount` — the asset's on-chain base unit (wei for ETH). `100_000_000_000_000_000n` = **0.1 ETH**; `1_000_000_000_000_000_000n` = 1 ETH.
 
-**Quote outputs** — the `FiatQuote` returned by `quoteBuy`/`quoteSell` follows the WDK convention and reports amounts in **base units** as `bigint`:
-
-- `cryptoAmount` / `fiatAmount` / `fee` are `bigint` in the asset's base unit (e.g. wei) and the currency's smallest unit (e.g. cents).
-- `rate` is a decimal string (standard units).
-
-So: you pass plain decimals in, and get `bigint` base units back. The module uses each asset's `decimals` and each currency's `roundOff` (from the supported-currencies lists) to do the conversion.
+Prefer `bigint` (the `n` suffix) — crypto base units routinely exceed JavaScript's safe integer range. The module converts these to the standard units Transak's API expects, using each asset's `decimals` and each currency's `roundOff` (read from the supported-currencies lists). Quotes are returned the same way: `cryptoAmount`, `fiatAmount`, and `fee` are `bigint` base units, and `rate` is a decimal string.
 
 ## 🌐 Values & Conventions
 
@@ -165,11 +158,13 @@ Pass `cryptoAsset`, `fiatCurrency`, `network`, and `paymentMethod` **exactly** a
 ```javascript
 // ✅ Correct — values match Transak's conventions exactly
 await transak.quoteBuy({
-  cryptoAsset: 'USDT',              // upper-case symbol
-  fiatCurrency: 'USD',             // upper-case ISO 4217 code
-  network: 'ethereum',             // lower-case network name
-  paymentMethod: 'credit_debit_card', // lower-case identifier
-  fiatAmount: 100
+  cryptoAsset: 'USDT',   // upper-case symbol
+  fiatCurrency: 'USD',   // upper-case ISO 4217 code
+  fiatAmount: 10_000n,   // base units (cents) = $100
+  config: {
+    network: 'ethereum',                // lower-case network name
+    paymentMethod: 'credit_debit_card'  // lower-case identifier
+  }
 })
 
 // ❌ Wrong — the casing isn't fixed up for you, so this throws:
@@ -177,9 +172,8 @@ await transak.quoteBuy({
 await transak.quoteBuy({
   cryptoAsset: 'usdt',
   fiatCurrency: 'usd',
-  network: 'Ethereum',
-  paymentMethod: 'credit_debit_card',
-  fiatAmount: 100
+  fiatAmount: 10_000n,
+  config: { network: 'Ethereum', paymentMethod: 'credit_debit_card' }
 })
 ```
 
@@ -223,16 +217,13 @@ const paymentMethods = usd.metadata.paymentOptions.map(o => o.id)
 
 ### Assets on multiple networks
 
-Transak identifies an asset by symbol **and** network, so a symbol like `USDT` can exist on several chains (`ethereum`, `tron`, `solana`, …). Pass the `network` to pick the right one:
-
-- **`quoteBuy` / `quoteSell`** — `network` is **required**.
-- **`buy` / `sell`** — `network` is optional in `config`; when omitted the module uses the **first** matching entry from the supported-crypto list. Pass `config.network` to disambiguate:
+Transak identifies an asset by symbol **and** network, so a symbol like `USDT` can exist on several chains (`ethereum`, `tron`, `solana`, …). For all methods, `network` is optional in `config`; when omitted the module uses the **first** matching entry from the supported-crypto list. Pass `config.network` to pick a specific chain:
 
 ```javascript
 await transak.buy({
   cryptoAsset: 'USDT',
   fiatCurrency: 'USD',
-  fiatAmount: 100,
+  fiatAmount: 10_000n, // $100 in cents
   config: { network: 'tron' }
 })
 ```
@@ -263,8 +254,8 @@ Parameters:
 |--------|-------------|---------|
 | `buy(options)` | Generates a widget URL to purchase crypto | `Promise<BuyResult>` |
 | `sell(options)` | Generates a widget URL to sell crypto | `Promise<SellResult>` |
-| `quoteBuy(config)` | Gets a quote for a crypto asset purchase | `Promise<TransakBuyQuote>` |
-| `quoteSell(config)` | Gets a quote for a crypto asset sale | `Promise<TransakSellQuote>` |
+| `quoteBuy(options)` | Gets a quote for a crypto asset purchase | `Promise<TransakBuyQuote>` |
+| `quoteSell(options)` | Gets a quote for a crypto asset sale | `Promise<TransakSellQuote>` |
 | `getTransactionDetail(txId)` | Retrieves the details of an order | `Promise<TransakTransactionDetail>` |
 | `getSupportedCryptoAssets()` | Retrieves a list of supported crypto assets | `Promise<TransakSupportedCryptoAsset[]>` |
 | `getSupportedFiatCurrencies()` | Retrieves a list of supported fiat currencies | `Promise<TransakSupportedFiatCurrency[]>` |
@@ -276,8 +267,8 @@ Generates a widget URL to purchase crypto.
 Options:
 - `fiatCurrency` (string): The fiat currency code (e.g., 'USD').
 - `cryptoAsset` (string): The crypto asset code (e.g., 'ETH').
-- `fiatAmount` (number, optional): The fiat amount, as a decimal in standard units (e.g. `100.5`).
-- `cryptoAmount` (number, optional): The crypto amount, as a decimal in standard units (e.g. `0.1`).
+- `fiatAmount` (number | bigint, optional): The fiat amount, in base units (e.g. `10_000n` = 100 USD in cents).
+- `cryptoAmount` (number | bigint, optional): The crypto amount, in base units (e.g. `1_000_000_000_000_000_000n` = 1 ETH in wei).
 - `recipient` (string, optional): The wallet address to receive funds. If not provided, uses the account address.
 - `config` (object, optional): Additional Transak widget parameters (including `network`).
 
@@ -295,8 +286,8 @@ Generates a widget URL to sell crypto.
 Options:
 - `fiatCurrency` (string): The fiat currency code (e.g., 'USD').
 - `cryptoAsset` (string): The crypto asset code (e.g., 'ETH').
-- `fiatAmount` (number, optional): The fiat amount, as a decimal in standard units (e.g. `100.5`).
-- `cryptoAmount` (number, optional): The crypto amount, as a decimal in standard units (e.g. `0.1`).
+- `fiatAmount` (number | bigint, optional): The fiat amount, in base units (e.g. `10_000n` = 100 USD in cents).
+- `cryptoAmount` (number | bigint, optional): The crypto amount, in base units (e.g. `1_000_000_000_000_000_000n` = 1 ETH in wei).
 - `refundAddress` (string, optional): The wallet address for refunds. If not provided, uses the account address.
 - `config` (object, optional): Additional Transak widget parameters (including `network`).
 
@@ -308,14 +299,15 @@ Returns `Promise<{ sellUrl: string }>` — the URL your `widgetUrl` callback pro
 }
 ```
 
-#### `quoteBuy(config)`
-Gets a quote for a crypto asset purchase. Takes a single `TransakQuoteBuyParams` object (not an options wrapper):
+#### `quoteBuy(options)`
+Gets a quote for a crypto asset purchase.
 
-- `cryptoAsset` (string, **required**): The crypto asset code (e.g. `'ETH'`).
-- `fiatCurrency` (string, **required**): The fiat currency code (e.g. `'USD'`).
-- `fiatAmount` (number, **required**): The fiat amount, as a decimal in standard units (e.g. `100.5`).
-- `paymentMethod` (string, **required**): The payment method to price the quote against (e.g. `'credit_debit_card'`).
-- `network` (string, **required**): The network of the crypto currency (e.g. `'ethereum'`).
+Options:
+- `cryptoAsset` (string): The crypto asset code (e.g. `'ETH'`).
+- `fiatCurrency` (string): The fiat currency code (e.g. `'USD'`).
+- `fiatAmount` (number | bigint, optional): The fiat amount, in base units (e.g. `10_000n` = 100 USD in cents). Provide this or `cryptoAmount`.
+- `cryptoAmount` (number | bigint, optional): The crypto amount, in base units (e.g. `1_000_000_000_000_000_000n`). Provide this or `fiatAmount`.
+- `config` (object, optional): Provider-specific extras — `paymentMethod` (e.g. `'credit_debit_card'`) and `network` (resolved from the supported list when omitted).
 
 Returns `Promise<TransakBuyQuote>`. Amounts are `bigint` base units; `rate` is a decimal string; `metadata` is the raw Transak quote:
 
@@ -329,14 +321,14 @@ Returns `Promise<TransakBuyQuote>`. Amounts are `bigint` base units; `rate` is a
 }
 ```
 
-#### `quoteSell(config)`
-Gets a quote for a crypto asset sale. Takes a single `TransakQuoteSellParams` object (not an options wrapper):
+#### `quoteSell(options)`
+Gets a quote for a crypto asset sale.
 
-- `cryptoAsset` (string, **required**): The crypto asset code (e.g. `'ETH'`).
-- `fiatCurrency` (string, **required**): The fiat currency code (e.g. `'USD'`).
-- `cryptoAmount` (number, **required**): The crypto amount, as a decimal in standard units (e.g. `0.1`).
-- `paymentMethod` (string, **required**): The payout method to price the quote against (e.g. `'sepa_bank_transfer'`).
-- `network` (string, **required**): The network of the crypto currency (e.g. `'ethereum'`).
+Options:
+- `cryptoAsset` (string): The crypto asset code (e.g. `'ETH'`).
+- `fiatCurrency` (string): The fiat currency code (e.g. `'USD'`).
+- `cryptoAmount` (number | bigint, **required**): The crypto amount to sell, in base units (e.g. `1_000_000_000_000_000_000n`).
+- `config` (object, optional): Provider-specific extras — `paymentMethod` (e.g. `'sepa_bank_transfer'`) and `network` (resolved from the supported list when omitted).
 
 Returns `Promise<TransakSellQuote>` — same shape as `quoteBuy`:
 

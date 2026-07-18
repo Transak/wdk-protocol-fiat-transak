@@ -95,23 +95,17 @@ import BigNumber from 'bignumber.js'
 /** @typedef {TransakWidgetUiParams & TransakWidgetUiSellParams} TransakSellParams */
 
 /**
- * The complete set of parameters for a buy quote from the Transak pricing API.
+ * Provider-specific extras accepted by the Transak pricing API when requesting a buy quote.
  * @typedef {Object} TransakQuoteBuyParams
- * @property {string} cryptoAsset - The crypto asset code to price (e.g. 'ETH'). Required.
- * @property {string} fiatCurrency - The fiat currency's ISO 4217 code (e.g. 'USD'). Required.
- * @property {number} fiatAmount - The fiat amount to spend, as a decimal in standard units (e.g. 100.5 for 100.50 USD). Required.
- * @property {string} paymentMethod - The payment method to price the quote against (e.g. 'credit_debit_card'). Required.
- * @property {string} network - The network of the crypto currency (e.g. 'ethereum'). Required.
+ * @property {string} [paymentMethod] - The payment method to price the quote against (e.g. 'credit_debit_card').
+ * @property {string} [network] - The network of the crypto currency. Resolved from the supported assets list when omitted.
  */
 
 /**
- * The complete set of parameters for a sell quote from the Transak pricing API.
+ * Provider-specific extras accepted by the Transak pricing API when requesting a sell quote.
  * @typedef {Object} TransakQuoteSellParams
- * @property {string} cryptoAsset - The crypto asset code to price (e.g. 'ETH'). Required.
- * @property {string} fiatCurrency - The fiat currency's ISO 4217 code (e.g. 'USD'). Required.
- * @property {number} cryptoAmount - The crypto amount to sell, as a decimal in standard units (e.g. 0.5 for 0.5 ETH). Required.
- * @property {string} paymentMethod - The payout method to price the quote against (e.g. 'sepa_bank_transfer'). Required.
- * @property {string} network - The network of the crypto currency (e.g. 'ethereum'). Required.
+ * @property {string} [paymentMethod] - The payout method to price the quote against (e.g. 'sepa_bank_transfer').
+ * @property {string} [network] - The network of the crypto currency. Resolved from the supported assets list when omitted.
  */
 
 /**
@@ -248,7 +242,11 @@ import BigNumber from 'bignumber.js'
 
 /** @typedef {BuyOptions & { config?: TransakBuyParams }} TransakBuyOptions */
 
+/** @typedef {Omit<BuyOptions, 'recipient'> & { config?: TransakQuoteBuyParams }} TransakQuoteBuyOptions */
+
 /** @typedef {FiatQuote & { metadata: TransakQuote }} TransakBuyQuote */
+
+/** @typedef {Omit<SellCommonOptions, 'refundAddress'> & SellExactCryptoAmountOptions & { config?: TransakQuoteSellParams }} TransakQuoteSellOptions */
 
 /** @typedef {FiatQuote & { metadata: TransakQuote }} TransakSellQuote */
 
@@ -405,8 +403,6 @@ export default class TransakProtocol extends FiatProtocol {
 
   /**
    * Generates a widget URL for a user to purchase a crypto asset with fiat currency.
-   * `options.fiatAmount`/`options.cryptoAmount` are decimals in standard units
-   * (e.g. 100.5 for 100.50 USD, 0.5 for 0.5 ETH), matching Transak's API — not base units.
    * @override
    * @param {TransakBuyOptions} options - The options for the purchase.
    * @returns {Promise<BuyResult>} The URL for the user to complete the purchase.
@@ -419,6 +415,8 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
+
+    const fiatDecimals = getFiatDecimals(fiatInfo)
 
     const widgetParams = {
       ...config,
@@ -434,9 +432,13 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     if ('cryptoAmount' in options) {
-      widgetParams.cryptoAmount = options.cryptoAmount
+      widgetParams.cryptoAmount = new BigNumber(options.cryptoAmount)
+        .shiftedBy(-1 * cryptoInfo.decimals)
+        .toFixed(cryptoInfo.roundOff, 1)
     } else if ('fiatAmount' in options) {
-      widgetParams.fiatAmount = options.fiatAmount
+      widgetParams.fiatAmount = new BigNumber(options.fiatAmount)
+        .shiftedBy(-1 * fiatDecimals)
+        .toFixed(fiatInfo.roundOff, 1)
     } else {
       throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     }
@@ -457,34 +459,39 @@ export default class TransakProtocol extends FiatProtocol {
   /**
    * Gets a quote for a crypto asset purchase.
    * @override
-   * @param {TransakQuoteBuyParams} config - The parameters for the quote.
+   * @param {TransakQuoteBuyOptions} options - The options for the quote.
    * @returns {Promise<TransakBuyQuote>} A quote for the transaction.
    */
-  async quoteBuy (config) {
-    const { cryptoAsset, fiatCurrency, fiatAmount, paymentMethod, network } = config
+  async quoteBuy (options) {
+    const { cryptoAsset, fiatCurrency, config } = options
 
-    if (fiatAmount === undefined) {
-      throw new Error('\'fiatAmount\' must be provided')
-    }
+    const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
 
-    if (!paymentMethod) {
-      throw new Error('\'paymentMethod\' must be provided')
-    }
-
-    if (!network) {
-      throw new Error('\'network\' must be provided')
-    }
-
-    const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, network)
+    const fiatDecimals = getFiatDecimals(fiatInfo)
 
     const params = {
+      ...config,
       partnerApiKey: this._apiKey,
       fiatCurrency: fiatInfo.symbol,
       cryptoCurrency: cryptoInfo.symbol,
       network: cryptoInfo.network.name,
-      paymentMethod,
-      isBuyOrSell: 'BUY',
-      fiatAmount: new BigNumber(fiatAmount).toFixed()
+      isBuyOrSell: 'BUY'
+    }
+
+    if ('cryptoAmount' in options && 'fiatAmount' in options) {
+      throw new Error('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+    }
+
+    if ('cryptoAmount' in options) {
+      params.cryptoAmount = new BigNumber(options.cryptoAmount)
+        .shiftedBy(-1 * cryptoInfo.decimals)
+        .toFixed(cryptoInfo.roundOff, 1)
+    } else if ('fiatAmount' in options) {
+      params.fiatAmount = new BigNumber(options.fiatAmount)
+        .shiftedBy(-1 * fiatDecimals)
+        .toFixed(fiatInfo.roundOff, 1)
+    } else {
+      throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     }
 
     const quote = await this._fetchQuote(params)
@@ -495,34 +502,28 @@ export default class TransakProtocol extends FiatProtocol {
   /**
    * Gets a quote for a crypto asset sale.
    * @override
-   * @param {TransakQuoteSellParams} config - The parameters for the quote.
+   * @param {TransakQuoteSellOptions} options - The options for the quote.
    * @returns {Promise<TransakSellQuote>} A quote for the transaction.
    */
-  async quoteSell (config) {
-    const { cryptoAsset, fiatCurrency, cryptoAmount, paymentMethod, network } = config
+  async quoteSell (options) {
+    const { cryptoAsset, fiatCurrency, cryptoAmount, config } = options
 
     if (cryptoAmount === undefined) {
       throw new Error('\'cryptoAmount\' must be provided')
     }
 
-    if (!paymentMethod) {
-      throw new Error('\'paymentMethod\' must be provided')
-    }
-
-    if (!network) {
-      throw new Error('\'network\' must be provided')
-    }
-
-    const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, network)
+    const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
 
     const params = {
+      ...config,
       partnerApiKey: this._apiKey,
       fiatCurrency: fiatInfo.symbol,
       cryptoCurrency: cryptoInfo.symbol,
       network: cryptoInfo.network.name,
-      paymentMethod,
       isBuyOrSell: 'SELL',
-      cryptoAmount: new BigNumber(cryptoAmount).toFixed()
+      cryptoAmount: new BigNumber(cryptoAmount)
+        .shiftedBy(-1 * cryptoInfo.decimals)
+        .toFixed(cryptoInfo.roundOff, 1)
     }
 
     const quote = await this._fetchQuote(params)
@@ -532,8 +533,6 @@ export default class TransakProtocol extends FiatProtocol {
 
   /**
    * Generates a widget URL for a user to sell a crypto asset for fiat currency.
-   * `options.fiatAmount`/`options.cryptoAmount` are decimals in standard units
-   * (e.g. 100.5 for 100.50 USD, 0.5 for 0.5 ETH), matching Transak's API — not base units.
    * @override
    * @param {TransakSellOptions} options - The options for the sale.
    * @returns {Promise<SellResult>} The URL for the user to complete the sale.
@@ -546,6 +545,8 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
+
+    const fiatDecimals = getFiatDecimals(fiatInfo)
 
     const widgetParams = {
       ...config,
@@ -561,9 +562,13 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     if ('cryptoAmount' in options) {
-      widgetParams.cryptoAmount = options.cryptoAmount
+      widgetParams.cryptoAmount = new BigNumber(options.cryptoAmount)
+        .shiftedBy(-1 * cryptoInfo.decimals)
+        .toFixed(cryptoInfo.roundOff, 1)
     } else if ('fiatAmount' in options) {
-      widgetParams.fiatAmount = options.fiatAmount
+      widgetParams.fiatAmount = new BigNumber(options.fiatAmount)
+        .shiftedBy(-1 * fiatDecimals)
+        .toFixed(fiatInfo.roundOff, 1)
     } else {
       throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     }

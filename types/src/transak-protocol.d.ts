@@ -50,8 +50,6 @@ export default class TransakProtocol extends FiatProtocol {
     private _getAssetDetails;
     /**
      * Generates a widget URL for a user to purchase a crypto asset with fiat currency.
-     * `options.fiatAmount`/`options.cryptoAmount` are decimals in standard units
-     * (e.g. 100.5 for 100.50 USD, 0.5 for 0.5 ETH), matching Transak's API — not base units.
      * @override
      * @param {TransakBuyOptions} options - The options for the purchase.
      * @returns {Promise<BuyResult>} The URL for the user to complete the purchase.
@@ -60,21 +58,19 @@ export default class TransakProtocol extends FiatProtocol {
     /**
      * Gets a quote for a crypto asset purchase.
      * @override
-     * @param {TransakQuoteBuyParams} config - The parameters for the quote.
+     * @param {TransakQuoteBuyOptions} options - The options for the quote.
      * @returns {Promise<TransakBuyQuote>} A quote for the transaction.
      */
-    override quoteBuy(config: TransakQuoteBuyParams): Promise<TransakBuyQuote>;
+    override quoteBuy(options: TransakQuoteBuyOptions): Promise<TransakBuyQuote>;
     /**
      * Gets a quote for a crypto asset sale.
      * @override
-     * @param {TransakQuoteSellParams} config - The parameters for the quote.
+     * @param {TransakQuoteSellOptions} options - The options for the quote.
      * @returns {Promise<TransakSellQuote>} A quote for the transaction.
      */
-    override quoteSell(config: TransakQuoteSellParams): Promise<TransakSellQuote>;
+    override quoteSell(options: TransakQuoteSellOptions): Promise<TransakSellQuote>;
     /**
      * Generates a widget URL for a user to sell a crypto asset for fiat currency.
-     * `options.fiatAmount`/`options.cryptoAmount` are decimals in standard units
-     * (e.g. 100.5 for 100.50 USD, 0.5 for 0.5 ETH), matching Transak's API — not base units.
      * @override
      * @param {TransakSellOptions} options - The options for the sale.
      * @returns {Promise<SellResult>} The URL for the user to complete the sale.
@@ -315,54 +311,30 @@ export type TransakWidgetUiSellParams = {
 };
 export type TransakSellParams = TransakWidgetUiParams & TransakWidgetUiSellParams;
 /**
- * The complete set of parameters for a buy quote from the Transak pricing API.
+ * Provider-specific extras accepted by the Transak pricing API when requesting a buy quote.
  */
 export type TransakQuoteBuyParams = {
     /**
-     * - The crypto asset code to price (e.g. 'ETH'). Required.
+     * - The payment method to price the quote against (e.g. 'credit_debit_card').
      */
-    cryptoAsset: string;
+    paymentMethod?: string;
     /**
-     * - The fiat currency's ISO 4217 code (e.g. 'USD'). Required.
+     * - The network of the crypto currency. Resolved from the supported assets list when omitted.
      */
-    fiatCurrency: string;
-    /**
-     * - The fiat amount to spend, as a decimal in standard units (e.g. 100.5 for 100.50 USD). Required.
-     */
-    fiatAmount: number;
-    /**
-     * - The payment method to price the quote against (e.g. 'credit_debit_card'). Required.
-     */
-    paymentMethod: string;
-    /**
-     * - The network of the crypto currency (e.g. 'ethereum'). Required.
-     */
-    network: string;
+    network?: string;
 };
 /**
- * The complete set of parameters for a sell quote from the Transak pricing API.
+ * Provider-specific extras accepted by the Transak pricing API when requesting a sell quote.
  */
 export type TransakQuoteSellParams = {
     /**
-     * - The crypto asset code to price (e.g. 'ETH'). Required.
+     * - The payout method to price the quote against (e.g. 'sepa_bank_transfer').
      */
-    cryptoAsset: string;
+    paymentMethod?: string;
     /**
-     * - The fiat currency's ISO 4217 code (e.g. 'USD'). Required.
+     * - The network of the crypto currency. Resolved from the supported assets list when omitted.
      */
-    fiatCurrency: string;
-    /**
-     * - The crypto amount to sell, as a decimal in standard units (e.g. 0.5 for 0.5 ETH). Required.
-     */
-    cryptoAmount: number;
-    /**
-     * - The payout method to price the quote against (e.g. 'sepa_bank_transfer'). Required.
-     */
-    paymentMethod: string;
-    /**
-     * - The network of the crypto currency (e.g. 'ethereum'). Required.
-     */
-    network: string;
+    network?: string;
 };
 export type TransakNetworkDetails = {
     /**
@@ -740,8 +712,14 @@ export type TransakSupportedFiatCurrency = SupportedFiatCurrency & {
 export type TransakBuyOptions = BuyOptions & {
     config?: TransakBuyParams;
 };
+export type TransakQuoteBuyOptions = Omit<BuyOptions, "recipient"> & {
+    config?: TransakQuoteBuyParams;
+};
 export type TransakBuyQuote = FiatQuote & {
     metadata: TransakQuote;
+};
+export type TransakQuoteSellOptions = Omit<SellCommonOptions, "refundAddress"> & SellExactCryptoAmountOptions & {
+    config?: TransakQuoteSellParams;
 };
 export type TransakSellQuote = FiatQuote & {
     metadata: TransakQuote;

@@ -66,18 +66,19 @@ describe('TransakProtocol', () => {
       const result = await transak.buy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        cryptoAmount: 1
+        cryptoAmount: 1_000_000_000_000_000_000n // 1 ETH, in base units (wei)
       })
 
       const [[widgetParams]] = widgetUrl.mock.calls
 
+      // The module converts base units to the standard units Transak expects.
       expect(widgetParams).toMatchObject({
         apiKey: MOCK_API_KEY,
         productsAvailed: 'BUY',
         cryptoCurrencyCode: 'ETH',
         network: 'ethereum',
         fiatCurrency: 'USD',
-        cryptoAmount: 1
+        cryptoAmount: '1.00000'
       })
       expect(result).toEqual({ buyUrl: MOCK_WIDGET_URL })
     })
@@ -89,7 +90,7 @@ describe('TransakProtocol', () => {
       const result = await transak.buy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: 1000 // 1000 USD
+        fiatAmount: 1000_00n // 1000 USD, in base units (cents)
       })
 
       const [[widgetParams]] = widgetUrl.mock.calls
@@ -99,7 +100,7 @@ describe('TransakProtocol', () => {
         productsAvailed: 'BUY',
         cryptoCurrencyCode: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: 1000
+        fiatAmount: '1000.00'
       })
       expect(result).toEqual({ buyUrl: MOCK_WIDGET_URL })
     })
@@ -111,7 +112,7 @@ describe('TransakProtocol', () => {
       await transak.buy({
         cryptoAsset: 'USDT',
         fiatCurrency: 'USD',
-        fiatAmount: 100,
+        fiatAmount: 100_00n,
         config: { network: 'tron' }
       })
 
@@ -131,7 +132,7 @@ describe('TransakProtocol', () => {
       await expect(noWidgetUrl.buy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: 1000
+        fiatAmount: 1000_00n
       })).rejects.toThrow('A \'widgetUrl\' callback is required to create a Transak widget URL')
       expect(widgetUrl).not.toHaveBeenCalled()
     })
@@ -143,7 +144,7 @@ describe('TransakProtocol', () => {
       await transak.buy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: 1000,
+        fiatAmount: 1000_00n,
         recipient: '0x8ba1f109551bD432803012645Ac136ddd64DBA72'
       })
 
@@ -159,7 +160,7 @@ describe('TransakProtocol', () => {
       await transak.buy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: 1000
+        fiatAmount: 1000_00n
       })
 
       const [[widgetParams]] = widgetUrl.mock.calls
@@ -173,8 +174,8 @@ describe('TransakProtocol', () => {
       await expect(transak.buy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        cryptoAmount: 1,
-        fiatAmount: 1
+        cryptoAmount: 1n,
+        fiatAmount: 1n
       })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
     })
 
@@ -193,7 +194,7 @@ describe('TransakProtocol', () => {
       await expect(transak.buy({
         cryptoAsset: 'DOGE',
         fiatCurrency: 'USD',
-        fiatAmount: 100
+        fiatAmount: 100_00n
       })).rejects.toThrow('Cannot find info for cryptoAsset and fiatCurrency')
     })
   })
@@ -206,18 +207,19 @@ describe('TransakProtocol', () => {
       const result = await transak.sell({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        cryptoAmount: 1
+        cryptoAmount: 1_000_000_000_000_000_000n // 1 ETH, in base units (wei)
       })
 
       const [[widgetParams]] = widgetUrl.mock.calls
 
+      // The module converts base units to the standard units Transak expects.
       expect(widgetParams).toMatchObject({
         apiKey: MOCK_API_KEY,
         productsAvailed: 'SELL',
         cryptoCurrencyCode: 'ETH',
         network: 'ethereum',
         fiatCurrency: 'USD',
-        cryptoAmount: 1
+        cryptoAmount: '1.00000'
       })
       expect(result).toEqual({ sellUrl: MOCK_WIDGET_URL })
     })
@@ -229,7 +231,7 @@ describe('TransakProtocol', () => {
       const result = await transak.sell({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: 1000 // 1000 USD
+        fiatAmount: 1000_00n // 1000 USD, in base units (cents)
       })
 
       const [[widgetParams]] = widgetUrl.mock.calls
@@ -239,7 +241,7 @@ describe('TransakProtocol', () => {
         productsAvailed: 'SELL',
         cryptoCurrencyCode: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: 1000
+        fiatAmount: '1000.00'
       })
       expect(result).toEqual({ sellUrl: MOCK_WIDGET_URL })
     })
@@ -251,7 +253,7 @@ describe('TransakProtocol', () => {
       await transak.sell({
         cryptoAsset: 'USDT',
         fiatCurrency: 'USD',
-        cryptoAmount: 1,
+        cryptoAmount: 1_000_000n, // 1 USDT, in base units (6 decimals)
         config: { network: 'tron' }
       })
 
@@ -270,7 +272,7 @@ describe('TransakProtocol', () => {
       await transak.sell({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        cryptoAmount: 1,
+        cryptoAmount: 1_000_000_000_000_000_000n,
         refundAddress: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8'
       })
 
@@ -286,7 +288,7 @@ describe('TransakProtocol', () => {
       await transak.sell({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        cryptoAmount: 1
+        cryptoAmount: 1_000_000_000_000_000_000n
       })
 
       const [[widgetParams]] = widgetUrl.mock.calls
@@ -300,8 +302,8 @@ describe('TransakProtocol', () => {
       await expect(transak.sell({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        cryptoAmount: 1,
-        fiatAmount: 1
+        cryptoAmount: 1n,
+        fiatAmount: 1n
       })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
     })
 
@@ -320,7 +322,7 @@ describe('TransakProtocol', () => {
       await expect(transak.sell({
         cryptoAsset: 'DOGE',
         fiatCurrency: 'USD',
-        cryptoAmount: 1
+        cryptoAmount: 1_000_000_000_000_000_000n
       })).rejects.toThrow('Cannot find info for cryptoAsset and fiatCurrency')
     })
 
@@ -332,7 +334,7 @@ describe('TransakProtocol', () => {
       await expect(noWidgetUrl.sell({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        cryptoAmount: 1
+        cryptoAmount: 1_000_000_000_000_000_000n
       })).rejects.toThrow('A \'widgetUrl\' callback is required to create a Transak widget URL')
       expect(widgetUrl).not.toHaveBeenCalled()
     })
@@ -392,9 +394,8 @@ describe('TransakProtocol', () => {
       const quote = await transak.quoteBuy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: 1000,
-        paymentMethod: 'credit_debit_card',
-        network: 'ethereum'
+        fiatAmount: 1000_00n, // 1000 USD, in base units (cents)
+        config: { paymentMethod: 'credit_debit_card' }
       })
 
       const [quoteUrl] = findCall('pricing/public/quotes')
@@ -405,7 +406,7 @@ describe('TransakProtocol', () => {
         cryptoCurrency: 'ETH',
         network: 'ethereum',
         isBuyOrSell: 'BUY',
-        fiatAmount: '1000',
+        fiatAmount: '1000.00', // converted to standard units for Transak
         paymentMethod: 'credit_debit_card'
       })
       // The raw cryptoAsset must not leak into the pricing query.
@@ -426,46 +427,32 @@ describe('TransakProtocol', () => {
       await transak.quoteBuy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: 1000,
-        paymentMethod: 'credit_debit_card',
-        network: 'ethereum'
+        fiatAmount: 1000_00n,
+        config: { paymentMethod: 'credit_debit_card' }
       })
 
       const [, options] = findCall('pricing/public/quotes')
       expect(options.headers['x-api-key']).toBe(MOCK_API_KEY)
     })
 
-    test('should throw when fiatAmount is not provided', async () => {
+    test('should throw when both cryptoAmount and fiatAmount are provided', async () => {
       global.fetch = createFetchMock({ quote: MOCK_BUY_QUOTE })
 
       await expect(transak.quoteBuy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        paymentMethod: 'credit_debit_card',
-        network: 'ethereum'
-      })).rejects.toThrow('\'fiatAmount\' must be provided')
+        cryptoAmount: 1n,
+        fiatAmount: 1n
+      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
     })
 
-    test('should throw when paymentMethod is not provided', async () => {
+    test('should throw when neither cryptoAmount nor fiatAmount is provided', async () => {
       global.fetch = createFetchMock({ quote: MOCK_BUY_QUOTE })
 
       await expect(transak.quoteBuy({
         cryptoAsset: 'ETH',
-        fiatCurrency: 'USD',
-        fiatAmount: 1000,
-        network: 'ethereum'
-      })).rejects.toThrow('\'paymentMethod\' must be provided')
-    })
-
-    test('should throw when network is not provided', async () => {
-      global.fetch = createFetchMock({ quote: MOCK_BUY_QUOTE })
-
-      await expect(transak.quoteBuy({
-        cryptoAsset: 'ETH',
-        fiatCurrency: 'USD',
-        fiatAmount: 1000,
-        paymentMethod: 'credit_debit_card'
-      })).rejects.toThrow('\'network\' must be provided')
+        fiatCurrency: 'USD'
+      })).rejects.toThrow('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     })
 
     test('should throw when the quote request fails', async () => {
@@ -478,9 +465,8 @@ describe('TransakProtocol', () => {
       await expect(transak.quoteBuy({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: 1000,
-        paymentMethod: 'credit_debit_card',
-        network: 'ethereum'
+        fiatAmount: 1000_00n,
+        config: { paymentMethod: 'credit_debit_card' }
       })).rejects.toThrow('Failed to fetch Transak quote: 400 Bad Request')
     })
   })
@@ -504,9 +490,8 @@ describe('TransakProtocol', () => {
       const quote = await transak.quoteSell({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        cryptoAmount: 0.5, // 0.5 ETH
-        paymentMethod: 'sepa_bank_transfer',
-        network: 'ethereum'
+        cryptoAmount: 500_000_000_000_000_000n, // 0.5 ETH, in base units (wei)
+        config: { paymentMethod: 'sepa_bank_transfer' }
       })
 
       const [quoteUrl] = findCall('pricing/public/quotes')
@@ -515,7 +500,7 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         cryptoCurrency: 'ETH',
         isBuyOrSell: 'SELL',
-        cryptoAmount: '0.5',
+        cryptoAmount: '0.50000', // converted to standard units for Transak
         paymentMethod: 'sepa_bank_transfer'
       })
 
@@ -534,31 +519,8 @@ describe('TransakProtocol', () => {
       await expect(transak.quoteSell({
         cryptoAsset: 'ETH',
         fiatCurrency: 'USD',
-        paymentMethod: 'sepa_bank_transfer',
-        network: 'ethereum'
+        config: { paymentMethod: 'sepa_bank_transfer' }
       })).rejects.toThrow('\'cryptoAmount\' must be provided')
-    })
-
-    test('should throw when paymentMethod is not provided', async () => {
-      global.fetch = createFetchMock({ quote: MOCK_SELL_QUOTE })
-
-      await expect(transak.quoteSell({
-        cryptoAsset: 'ETH',
-        fiatCurrency: 'USD',
-        cryptoAmount: 0.5,
-        network: 'ethereum'
-      })).rejects.toThrow('\'paymentMethod\' must be provided')
-    })
-
-    test('should throw when network is not provided', async () => {
-      global.fetch = createFetchMock({ quote: MOCK_SELL_QUOTE })
-
-      await expect(transak.quoteSell({
-        cryptoAsset: 'ETH',
-        fiatCurrency: 'USD',
-        cryptoAmount: 0.5,
-        paymentMethod: 'sepa_bank_transfer'
-      })).rejects.toThrow('\'network\' must be provided')
     })
   })
 
