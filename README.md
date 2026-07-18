@@ -281,6 +281,14 @@ Options:
 - `recipient` (string, optional): The wallet address to receive funds. If not provided, uses the account address.
 - `config` (object, optional): Additional Transak widget parameters (including `network`).
 
+Returns `Promise<{ buyUrl: string }>` — the URL your `widgetUrl` callback produced:
+
+```javascript
+{
+  buyUrl: 'https://global.transak.com/?apiKey=4fcd6904-706b-4aff-bd9d-77422813bbb7&sessionId=b8f4e2a1-9c3d-4e6f-8a1b-2c3d4e5f6a7b'
+}
+```
+
 #### `sell(options)`
 Generates a widget URL to sell crypto.
 
@@ -292,6 +300,14 @@ Options:
 - `refundAddress` (string, optional): The wallet address for refunds. If not provided, uses the account address.
 - `config` (object, optional): Additional Transak widget parameters (including `network`).
 
+Returns `Promise<{ sellUrl: string }>` — the URL your `widgetUrl` callback produced:
+
+```javascript
+{
+  sellUrl: 'https://global.transak.com/?apiKey=4fcd6904-706b-4aff-bd9d-77422813bbb7&sessionId=b8f4e2a1-9c3d-4e6f-8a1b-2c3d4e5f6a7b'
+}
+```
+
 #### `quoteBuy(config)`
 Gets a quote for a crypto asset purchase. Takes a single `TransakQuoteBuyParams` object (not an options wrapper):
 
@@ -300,6 +316,18 @@ Gets a quote for a crypto asset purchase. Takes a single `TransakQuoteBuyParams`
 - `fiatAmount` (number, **required**): The fiat amount, as a decimal in standard units (e.g. `100.5`).
 - `paymentMethod` (string, **required**): The payment method to price the quote against (e.g. `'credit_debit_card'`).
 - `network` (string, **required**): The network of the crypto currency (e.g. `'ethereum'`).
+
+Returns `Promise<TransakBuyQuote>`. Amounts are `bigint` base units; `rate` is a decimal string; `metadata` is the raw Transak quote:
+
+```javascript
+{
+  cryptoAmount: 500000000000000000n, // 0.5 ETH, in base units (wei)
+  fiatAmount: 100000n,               // 1000.00 USD, in base units (cents)
+  fee: 500n,                         // 5.00 USD, in base units (cents)
+  rate: '2000',                      // 1 ETH = 2000 USD (standard units)
+  metadata: { quoteId: 'q1', conversionPrice: 2000, /* …full Transak quote */ }
+}
+```
 
 #### `quoteSell(config)`
 Gets a quote for a crypto asset sale. Takes a single `TransakQuoteSellParams` object (not an options wrapper):
@@ -310,20 +338,70 @@ Gets a quote for a crypto asset sale. Takes a single `TransakQuoteSellParams` ob
 - `paymentMethod` (string, **required**): The payout method to price the quote against (e.g. `'sepa_bank_transfer'`).
 - `network` (string, **required**): The network of the crypto currency (e.g. `'ethereum'`).
 
+Returns `Promise<TransakSellQuote>` — same shape as `quoteBuy`:
+
+```javascript
+{
+  cryptoAmount: 500000000000000000n, // 0.5 ETH, in base units (wei)
+  fiatAmount: 99500n,                // 995.00 USD, in base units (cents)
+  fee: 500n,                         // 5.00 USD, in base units (cents)
+  rate: '2000',                      // 1 ETH = 2000 USD (standard units)
+  metadata: { quoteId: 'q2', /* …full Transak quote */ }
+}
+```
+
 #### `getTransactionDetail(txId)`
 Retrieves the details of an order.
 
 Parameters:
 - `txId` (string): The Transak order ID.
 
+Returns `Promise<TransakTransactionDetail>`. `status` is normalised to `'in_progress' | 'failed' | 'completed'`; `metadata` is the raw Transak order:
+
+```javascript
+{
+  status: 'completed',
+  cryptoAsset: 'ETH',
+  fiatCurrency: 'USD',
+  metadata: { id: 'o1', status: 'COMPLETED', /* …full Transak order */ }
+}
+```
+
 #### `getSupportedCryptoAssets()`
-Retrieves a list of supported crypto assets. Each entry: `{ code, networkCode, decimals, name, metadata }`, where `code` is the `cryptoAsset` symbol and `networkCode` is the `network` — use both exactly as returned (see [Values & Conventions](#-values--conventions)). The full Transak object is under `metadata`.
+Retrieves a list of supported crypto assets. `code` is the `cryptoAsset` symbol and `networkCode` is the `network` — use both exactly as returned (see [Values & Conventions](#-values--conventions)). The full Transak object is under `metadata`.
+
+Returns `Promise<Array<{ code, networkCode, decimals, name, metadata }>>`:
+
+```javascript
+[
+  { code: 'ETH', networkCode: 'ethereum', decimals: 18, name: 'Ethereum', metadata: { /* … */ } },
+  { code: 'USDT', networkCode: 'tron', decimals: 6, name: 'Tether USD', metadata: { /* … */ } }
+]
+```
 
 #### `getSupportedFiatCurrencies()`
-Retrieves a list of supported fiat currencies. Each entry: `{ code, decimals, name, metadata }`, where `code` is the `fiatCurrency` code. Available `paymentMethod` identifiers are found in `metadata.paymentOptions[].id`.
+Retrieves a list of supported fiat currencies. `code` is the `fiatCurrency` code. Available `paymentMethod` identifiers are found in `metadata.paymentOptions[].id`.
+
+Returns `Promise<Array<{ code, decimals, name, metadata }>>`:
+
+```javascript
+[
+  { code: 'USD', decimals: 2, name: 'US Dollar', metadata: { /* …incl. paymentOptions */ } },
+  { code: 'EUR', decimals: 2, name: 'Euro', metadata: { /* … */ } }
+]
+```
 
 #### `getSupportedCountries()`
-Retrieves a list of supported countries. Each entry: `{ code, isBuyAllowed, isSellAllowed, name, metadata }`.
+Retrieves a list of supported countries.
+
+Returns `Promise<Array<{ code, isBuyAllowed, isSellAllowed, name, metadata }>>`:
+
+```javascript
+[
+  { code: 'US', isBuyAllowed: true, isSellAllowed: true, name: 'United States', metadata: { /* … */ } },
+  { code: 'GB', isBuyAllowed: true, isSellAllowed: true, name: 'United Kingdom', metadata: { /* … */ } }
+]
+```
 
 ## 📝 Notes
 
