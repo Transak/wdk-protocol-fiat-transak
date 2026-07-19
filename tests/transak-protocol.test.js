@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, jest, test } from '@jest/globals'
 import TransakProtocol from '../src/transak-protocol.js'
 
 const widgetUrl = jest.fn()
+const getOrder = jest.fn()
 
 // Transak partner API keys are UUIDs (from the Transak Partner dashboard).
 const MOCK_API_KEY = '4fcd6904-706b-4aff-bd9d-77422813bbb7'
@@ -49,7 +50,7 @@ function findCall (urlFragment) {
 }
 
 describe('TransakProtocol', () => {
-  const config = { widgetUrl, apiKey: MOCK_API_KEY, environment: 'STAGING' }
+  const config = { widgetUrl, getOrder, apiKey: MOCK_API_KEY, environment: 'STAGING' }
 
   let transak
 
@@ -615,49 +616,53 @@ describe('TransakProtocol', () => {
   })
 
   describe('getTransactionDetail', () => {
-    test('should fetch order details and map a completed status', async () => {
+    test('should fetch the order via the getOrder callback and map a completed status', async () => {
       const mockOrder = { id: 'o1', status: 'COMPLETED', cryptoCurrency: 'ETH', fiatCurrency: 'USD', isBuyOrSell: 'BUY' }
-      global.fetch = createFetchMock({ order: mockOrder })
+      getOrder.mockResolvedValue(mockOrder)
 
       const details = await transak.getTransactionDetail('o1')
 
-      const [orderUrl, options] = findCall('/order/')
-      expect(orderUrl).toBe('https://api-stg.transak.com/partners/api/v2/order/o1')
-      expect(options.headers['x-api-key']).toBe(MOCK_API_KEY)
-      expect(details.status).toBe('completed')
-      expect(details.cryptoAsset).toBe('ETH')
-      expect(details.fiatCurrency).toBe('USD')
-      expect(details.metadata).toEqual(mockOrder)
+      expect(getOrder).toHaveBeenCalledWith('o1')
+      expect(details).toEqual({
+        status: 'completed',
+        cryptoAsset: 'ETH',
+        fiatCurrency: 'USD',
+        metadata: mockOrder
+      })
     })
 
     test('should map an in-progress status', async () => {
-      const mockOrder = { id: 'o2', status: 'PROCESSING', cryptoCurrency: 'ETH', fiatCurrency: 'USD' }
-      global.fetch = createFetchMock({ order: mockOrder })
+      getOrder.mockResolvedValue({ id: 'o2', status: 'PROCESSING', cryptoCurrency: 'ETH', fiatCurrency: 'USD' })
 
       const details = await transak.getTransactionDetail('o2')
       expect(details.status).toBe('in_progress')
     })
 
     test('should map a failed status', async () => {
-      const mockOrder = { id: 'o3', status: 'FAILED', cryptoCurrency: 'ETH', fiatCurrency: 'USD' }
-      global.fetch = createFetchMock({ order: mockOrder })
+      getOrder.mockResolvedValue({ id: 'o3', status: 'FAILED', cryptoCurrency: 'ETH', fiatCurrency: 'USD' })
 
       const details = await transak.getTransactionDetail('o3')
       expect(details.status).toBe('failed')
     })
 
     test('should default unknown statuses to in_progress', async () => {
-      const mockOrder = { id: 'o4', status: 'SOME_NEW_STATUS', cryptoCurrency: 'ETH', fiatCurrency: 'USD' }
-      global.fetch = createFetchMock({ order: mockOrder })
+      getOrder.mockResolvedValue({ id: 'o4', status: 'SOME_NEW_STATUS', cryptoCurrency: 'ETH', fiatCurrency: 'USD' })
 
       const details = await transak.getTransactionDetail('o4')
       expect(details.status).toBe('in_progress')
     })
 
-    test('should throw when the order fetch fails', async () => {
-      global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' })
+    test('should throw when the getOrder callback is not provided', async () => {
+      const noGetOrder = new TransakProtocol(undefined, { apiKey: MOCK_API_KEY, environment: 'STAGING' })
 
-      await expect(transak.getTransactionDetail('missing')).rejects.toThrow('Failed to fetch Transak transaction detail: 404 Not Found')
+      await expect(noGetOrder.getTransactionDetail('o1')).rejects.toThrow('A \'getOrder\' callback is required to fetch a Transak order')
+      expect(getOrder).not.toHaveBeenCalled()
+    })
+
+    test('should propagate errors from the getOrder callback', async () => {
+      getOrder.mockRejectedValue(new Error('Failed to fetch Transak order: 404 Not Found'))
+
+      await expect(transak.getTransactionDetail('missing')).rejects.toThrow('Failed to fetch Transak order: 404 Not Found')
     })
   })
 })

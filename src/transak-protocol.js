@@ -271,6 +271,7 @@ import BigNumber from 'bignumber.js'
  * @typedef {Object} TransakProtocolConfig
  * @property {string} apiKey - Your Transak partner API key.
  * @property {(widgetParams: TransakWidgetParams) => Promise<string>} [widgetUrl] - Required by `buy`/`sell`. Receives the assembled `widgetParams` object and must return a session-based widget URL. Create it on your backend by calling Transak's Create Widget URL API (which needs your API secret). `buy`/`sell` throw if it is not provided.
+ * @property {(txId: string) => Promise<TransakOrder>} [getOrder] - Required by `getTransactionDetail`. Receives an order id and must return the Transak order. Fetch it on your backend by calling Transak's Get Order API (which needs a partner `access-token` minted from your API secret). `getTransactionDetail` throws if it is not provided.
  * @property {number} [cacheTime] - The duration in milliseconds to cache supported currencies.
  * @property {"PRODUCTION" | "STAGING"} [environment] - The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
  */
@@ -346,7 +347,7 @@ export default class TransakProtocol extends FiatProtocol {
    * @param {IWalletAccount} account - The wallet account to use to interact with the protocol.
    * @param {TransakProtocolConfig} config - The Transak protocol configuration.
    */
-  constructor (account, { apiKey, widgetUrl, environment = 'PRODUCTION', cacheTime = TRANSAK_CACHE_TIME }) {
+  constructor (account, { apiKey, widgetUrl, getOrder, environment = 'PRODUCTION', cacheTime = TRANSAK_CACHE_TIME }) {
     super(account)
 
     /** @private */
@@ -354,6 +355,9 @@ export default class TransakProtocol extends FiatProtocol {
 
     /** @private */
     this._widgetUrl = widgetUrl
+
+    /** @private */
+    this._getOrder = getOrder
 
     /** @private */
     this._environment = environment
@@ -588,26 +592,20 @@ export default class TransakProtocol extends FiatProtocol {
 
   /**
    * Retrieves the details of a specific order from the provider.
+   *
+   * Transak's Get Order API requires a partner `access-token` (minted from your
+   * API secret), which must not be exposed client-side — so the authenticated
+   * fetch is delegated to the `getOrder` callback, which runs on your backend.
    * @override
    * @param {string} txId - The unique identifier of the order.
    * @returns {Promise<TransakTransactionDetail>} The transaction details.
    */
   async getTransactionDetail (txId) {
-    const url = new URL(`partners/api/v2/order/${txId}`, this._apiOrigin)
-
-    const resp = await fetch(url.toString(), {
-      headers: {
-        accept: 'application/json',
-        'x-api-key': this._apiKey
-      }
-    })
-
-    if (!resp.ok) {
-      throw new Error(`Failed to fetch Transak transaction detail: ${resp.status} ${resp.statusText}`)
+    if (!this._getOrder) {
+      throw new Error('A \'getOrder\' callback is required to fetch a Transak order')
     }
 
-    const body = await resp.json()
-    const transakOrder = body.response ?? body
+    const transakOrder = await this._getOrder(txId)
 
     return {
       status: toWdkStatus(transakOrder.status),

@@ -40,7 +40,8 @@ import TransakProtocol from '@tetherto/wdk-protocol-fiat-transak'
 
 const transak = new TransakProtocol(account, {
   apiKey: 'YOUR_TRANSAK_PARTNER_KEY',
-  widgetUrl,               // required for buy()/sell() — see below
+  widgetUrl,               // required for buy()/sell()
+  getOrder,                // required for getTransactionDetail()
   environment: 'STAGING'   // 'PRODUCTION' (default) | 'STAGING'
 })
 ```
@@ -48,7 +49,7 @@ const transak = new TransakProtocol(account, {
 - **`account`** — an optional WDK wallet account (`IWalletAccount` / `IWalletAccountReadOnly`), or `undefined`. Used only by `buy`/`sell` to auto-fill the wallet address (see [Buy and Sell](#buy-and-sell)).
 - **`config`** — see [Configuration](#configuration) for all options.
 
-`widgetUrl` is a callback that turns the assembled `widgetParams` into a widget URL. It runs on **your backend**, where your API secret is safe:
+`widgetUrl` and `getOrder` are callbacks that run on **your backend**, where your API secret is safe. `widgetUrl` turns the assembled `widgetParams` into a widget URL:
 
 ```javascript
 const widgetUrl = async (widgetParams) => {
@@ -63,7 +64,18 @@ const widgetUrl = async (widgetParams) => {
 }
 ```
 
-See [Creating the widget URL (backend)](#creating-the-widget-url-backend) for what that backend endpoint does.
+`getOrder` fetches a Transak order by its id:
+
+```javascript
+const getOrder = async (txId) => {
+  const res = await fetch(`https://your-backend.example.com/transak/order/${txId}`)
+  if (!res.ok) throw new Error(`Failed to fetch Transak order: ${res.status}`)
+  const { order } = await res.json()
+  return order
+}
+```
+
+See [Creating the widget URL (backend)](#creating-the-widget-url-backend) and [Fetching an order (backend)](#fetching-an-order-backend) for what those backend endpoints do.
 
 ---
 
@@ -130,6 +142,8 @@ const detail = await transak.getTransactionDetail('order-id')
 
 `status` normalises Transak's order status to a standard value; the raw Transak order is under `metadata`.
 
+Transak's Get Order API requires a partner **`access-token`** (minted from your API secret), which must not be exposed client-side. So `getTransactionDetail` delegates the authenticated fetch to a **`getOrder`** callback that runs on your backend — the same pattern as `widgetUrl`. It's **required**; `getTransactionDetail` throws without it. See [Fetching an order (backend)](#fetching-an-order-backend).
+
 ---
 
 ## Supported currencies and countries
@@ -156,7 +170,8 @@ await transak.getSupportedCountries()
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `apiKey` | string | — | Your Transak partner API key ([Partner dashboard](https://dashboard.transak.com/)). |
-| `widgetUrl` | function | — | Callback that receives the assembled `widgetParams` object and returns a widget URL. **Required for `buy`/`sell`** (they throw without it); `quoteBuy`, `quoteSell`, and the `getSupported*` methods don't need it. |
+| `widgetUrl` | function | — | Callback that receives the assembled `widgetParams` object and returns a widget URL. **Required for `buy`/`sell`** (they throw without it); the other methods don't need it. |
+| `getOrder` | function | — | Callback `(txId) => Promise<TransakOrder>` that fetches a Transak order on your backend. **Required for `getTransactionDetail`** (it throws without it); the other methods don't need it. |
 | `environment` | `'PRODUCTION'` \| `'STAGING'` | `'PRODUCTION'` | Selects the Transak API host. Use `'STAGING'` for testing with non-real funds. |
 | `cacheTime` | number | `600000` | Milliseconds to cache the supported crypto/fiat lists. |
 
@@ -211,6 +226,8 @@ Returns `Promise<TransakBuyQuote>` / `Promise<TransakSellQuote>`:
 
 - `txId` (string): The Transak order ID.
 
+Requires the `getOrder` callback (see [Configuration](#configuration) and [Fetching an order (backend)](#fetching-an-order-backend)); throws without it.
+
 Returns `Promise<TransakTransactionDetail>` — `{ status, cryptoAsset, fiatCurrency, metadata }`, where `status` is `'in_progress' | 'failed' | 'completed'`.
 
 ### `getSupportedCryptoAssets()` / `getSupportedFiatCurrencies()` / `getSupportedCountries()`
@@ -256,6 +273,34 @@ Notes:
 - The returned widget URL is valid for **5 minutes** and each session can be used **once** — create a fresh one per flow.
 - For staging, use `https://api-stg.transak.com` and `https://api-gateway-stg.transak.com`.
 - For the full list of widget parameters, see the [Transak query parameters docs](https://docs.transak.com/customization/query-parameters).
+
+---
+
+## Fetching an order (backend)
+
+`getTransactionDetail` hands an order id to your `getOrder` callback, which fetches the order on your backend. Transak's [Get Order API](https://docs.transak.com/api/public/get-order-by-order-id) needs a partner `access-token` (minted from your API secret, same as the widget URL flow) alongside `x-api-key`:
+
+```javascript
+// On your backend — never ship the API secret to the client.
+async function getOrder (txId) {
+  // 1. Get a partner access token (reuse the same one as the widget URL flow; cache until it expires).
+  const tokenRes = await fetch('https://api.transak.com/partners/api/v2/refresh-token', {
+    method: 'POST',
+    headers: { 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json' },
+    body: JSON.stringify({ apiKey: process.env.TRANSAK_API_KEY })
+  })
+  const { data: { accessToken } } = await tokenRes.json()
+
+  // 2. Fetch the order and return it (the module maps its status).
+  const orderRes = await fetch(`https://api.transak.com/partners/api/v2/order/${txId}`, {
+    headers: { 'x-api-key': process.env.TRANSAK_API_KEY, 'access-token': accessToken }
+  })
+  const { data } = await orderRes.json() // Get Order responses are wrapped in { data }
+  return data
+}
+```
+
+Expose this behind an endpoint that responds with `{ order }`; the browser-side [`getOrder` callback](#initialize-transakprotocol) calls that endpoint — the same pattern as `widgetUrl`.
 
 ---
 

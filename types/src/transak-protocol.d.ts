@@ -28,6 +28,8 @@ export default class TransakProtocol extends FiatProtocol {
     /** @private */
     private _widgetUrl;
     /** @private */
+    private _getOrder;
+    /** @private */
     private _environment;
     /** @private */
     private _supportedCryptoAssetsCache;
@@ -78,6 +80,10 @@ export default class TransakProtocol extends FiatProtocol {
     override sell(options: TransakSellOptions): Promise<SellResult>;
     /**
      * Retrieves the details of a specific order from the provider.
+     *
+     * Transak's Get Order API requires a partner `access-token` (minted from your
+     * API secret), which must not be exposed client-side — so the authenticated
+     * fetch is delegated to the `getOrder` callback, which runs on your backend.
      * @override
      * @param {string} txId - The unique identifier of the order.
      * @returns {Promise<TransakTransactionDetail>} The transaction details.
@@ -775,6 +781,10 @@ export type TransakProtocolConfig = {
      * - Required by `buy`/`sell`. Receives the assembled `widgetParams` object and must return a session-based widget URL. Create it on your backend by calling Transak's Create Widget URL API (which needs your API secret). `buy`/`sell` throw if it is not provided.
      */
     widgetUrl?: (widgetParams: TransakWidgetParams) => Promise<string>;
+    /**
+     * - Required by `getTransactionDetail`. Receives an order id and must return the Transak order. Fetch it on your backend by calling Transak's Get Order API (which needs a partner `access-token` minted from your API secret). `getTransactionDetail` throws if it is not provided.
+     */
+    getOrder?: (txId: string) => Promise<TransakOrder>;
     /**
      * - The duration in milliseconds to cache supported currencies.
      */
