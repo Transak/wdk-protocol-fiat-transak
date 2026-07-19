@@ -107,17 +107,18 @@ const quote = await transak.quoteBuy({ cryptoAsset: 'ETH', fiatCurrency: 'USD', 
 // → { cryptoAmount, fiatAmount, fee (bigint base units), rate (string), metadata }
 ```
 
-Provider-specific extras — `paymentMethod`, `network`, and other [Transak widget parameters](https://docs.transak.com/customization/query-parameters) — go under `config`:
+Provider-specific extras — `paymentMethod`, `network`, `referrerDomain`, and other [Transak widget parameters](https://docs.transak.com/customization/query-parameters) — go under `config`:
 
 ```javascript
 await transak.buy({
   cryptoAsset: 'USDT', fiatCurrency: 'USD', fiatAmount: 10_000n,
-  config: { network: 'tron', paymentMethod: 'credit_debit_card' }
+  config: { network: 'tron', paymentMethod: 'credit_debit_card', referrerDomain: 'yourdomain.com' }
 })
 ```
 
 **Notes**
 
+- **`referrerDomain` (required for `buy`/`sell`)** — Transak's Create Widget URL API requires `config.referrerDomain` (your web domain or app package name); the widget URL fails without it. It may need allow-listing in the Partner dashboard. `quoteBuy`/`quoteSell` don't need it.
 - **Conventions** — `cryptoAsset`/`fiatCurrency` are upper-case (`ETH`, `USD`), `network`/`paymentMethod` lower-case (`ethereum`, `credit_debit_card`). They're matched exactly, with no normalisation (a wrong case throws `Cannot find info for cryptoAsset and fiatCurrency`). Fetch the exact values with the [supported-currencies methods](#supported-currencies-and-countries).
 - **Multi-network assets** — a symbol like `USDT` exists on several chains; `config.network` picks one (first match if omitted).
 - **Wallet address** — resolved from `recipient`/`refundAddress`, else the bound account's address, else the Transak widget prompts the user. `quote*`, `getTransactionDetail`, and `getSupported*` never use the account.
@@ -248,11 +249,13 @@ The raw Transak object is always available under `metadata`.
 
 ```javascript
 // On your backend — never ship the API secret to the client.
-async function createWidgetUrl (widgetParams) {
+// `userIp` is the end user's IP from the incoming request (e.g. req.ip, or your
+// CDN's cf-connecting-ip) — Transak requires it as the `x-user-ip` header.
+async function createWidgetUrl (widgetParams, userIp) {
   // 1. Get a partner access token (cache it until it expires).
   const tokenRes = await fetch('https://api.transak.com/partners/api/v2/refresh-token', {
     method: 'POST',
-    headers: { 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json' },
+    headers: { 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json', 'x-user-ip': userIp },
     body: JSON.stringify({ apiKey: process.env.TRANSAK_API_KEY })
   })
   const { data: { accessToken } } = await tokenRes.json()
@@ -260,7 +263,7 @@ async function createWidgetUrl (widgetParams) {
   // 2. Create the widget session and return its URL.
   const sessionRes = await fetch('https://api-gateway.transak.com/api/v2/auth/session', {
     method: 'POST',
-    headers: { 'access-token': accessToken, 'content-type': 'application/json' },
+    headers: { 'access-token': accessToken, 'content-type': 'application/json', 'x-user-ip': userIp },
     body: JSON.stringify({ widgetParams })
   })
   const { data: { widgetUrl } } = await sessionRes.json()
@@ -270,6 +273,7 @@ async function createWidgetUrl (widgetParams) {
 
 Notes:
 - Keep the API secret on the backend, never in client code.
+- **`x-user-ip` is mandatory** on Transak's authenticated APIs — send the end user's originating IP (a valid IPv4/IPv6), taken from the incoming request. See [Transak's security changes](https://docs.transak.com/guides/mandatory-security-changes#user-ip-header-in-apis).
 - The returned widget URL is valid for **5 minutes** and each session can be used **once** — create a fresh one per flow.
 - For staging, use `https://api-stg.transak.com` and `https://api-gateway-stg.transak.com`.
 - For the full list of widget parameters, see the [Transak query parameters docs](https://docs.transak.com/customization/query-parameters).
@@ -282,18 +286,19 @@ Notes:
 
 ```javascript
 // On your backend — never ship the API secret to the client.
-async function getOrder (txId) {
+// `userIp` is the end user's IP (Transak requires it as the `x-user-ip` header).
+async function getOrder (txId, userIp) {
   // 1. Get a partner access token (reuse the same one as the widget URL flow; cache until it expires).
   const tokenRes = await fetch('https://api.transak.com/partners/api/v2/refresh-token', {
     method: 'POST',
-    headers: { 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json' },
+    headers: { 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json', 'x-user-ip': userIp },
     body: JSON.stringify({ apiKey: process.env.TRANSAK_API_KEY })
   })
   const { data: { accessToken } } = await tokenRes.json()
 
   // 2. Fetch the order and return it (the module maps its status).
   const orderRes = await fetch(`https://api.transak.com/partners/api/v2/order/${txId}`, {
-    headers: { 'x-api-key': process.env.TRANSAK_API_KEY, 'access-token': accessToken }
+    headers: { 'x-api-key': process.env.TRANSAK_API_KEY, 'access-token': accessToken, 'x-user-ip': userIp }
   })
   const { data } = await orderRes.json() // Get Order responses are wrapped in { data }
   return data
@@ -311,9 +316,21 @@ npm install            # install dependencies
 npm run build:types    # build TypeScript definitions
 npm run lint           # lint code
 npm run lint:fix       # fix linting issues
-npm test               # run tests
+npm test               # run tests (mock-only)
 npm run test:coverage  # run tests with coverage
 ```
+
+### Live smoke test
+
+`npm test` is mock-only. To exercise all 8 methods against a real Transak environment, use the smoke test — copy the env template and fill it in (`.env` is gitignored):
+
+```bash
+cp .env.example .env   # set TRANSAK_API_KEY, TRANSAK_API_SECRET,
+                       #     TRANSAK_REFERRER_DOMAIN (allow-listed), TRANSAK_USER_IP (a valid IP)
+npm run smoke          # runs scripts/smoke-test.mjs against STAGING
+```
+
+It fetches the supported lists, requests buy/sell quotes, and generates buy/sell widget URLs (implementing the `widgetUrl`/`getOrder` backends inline, with the required `referrerDomain` and `x-user-ip`) — printing each method's return. Set `TRANSAK_ORDER_ID` in `.env` to also exercise `getTransactionDetail`.
 
 ## License
 
