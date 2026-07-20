@@ -83,27 +83,27 @@ See [Creating the widget URL (backend)](#creating-the-widget-url-backend) and [F
 
 `buy`/`sell` return a Transak widget URL; `quoteBuy`/`quoteSell` preview the economics without opening the widget.
 
-Amounts are in **base units** (`number | bigint`) — fiat in cents (`10_000n` = $100), crypto in on-chain base units (`1_000_000_000_000_000_000n` = 1 ETH). Quotes return the same way (`bigint` base units; `rate` a decimal string).
+Amounts are in **base units** (`number | bigint`) — fiat in cents (`10_000n` = €100), crypto in on-chain base units (`1_000_000_000_000_000_000n` = 1 ETH). Quotes return the same way (`bigint` base units; `rate` a decimal string).
 
 ```javascript
 // Buy (on-ramp)
 const { buyUrl } = await transak.buy({
   cryptoAsset: 'ETH',
-  fiatCurrency: 'USD',
-  fiatAmount: 10_000n,   // $100 in cents — or pass cryptoAmount
+  fiatCurrency: 'EUR',
+  fiatAmount: 10_000n,   // €100 in cents — or pass cryptoAmount
   recipient: '0xabc'     // optional; falls back to the bound account
 })
 
 // Sell (off-ramp)
 const { sellUrl } = await transak.sell({
   cryptoAsset: 'ETH',
-  fiatCurrency: 'USD',
+  fiatCurrency: 'EUR',
   cryptoAmount: 100_000_000_000_000_000n, // 0.1 ETH in wei
   refundAddress: '0xabc'                   // optional
 })
 
 // Quote (no widget opened)
-const quote = await transak.quoteBuy({ cryptoAsset: 'ETH', fiatCurrency: 'USD', fiatAmount: 10_000n })
+const quote = await transak.quoteBuy({ cryptoAsset: 'ETH', fiatCurrency: 'EUR', fiatAmount: 10_000n })
 // → { cryptoAmount, fiatAmount, fee (bigint base units), rate (string), metadata }
 ```
 
@@ -111,7 +111,7 @@ Provider-specific extras — `paymentMethod`, `network`, `referrerDomain`, and o
 
 ```javascript
 await transak.buy({
-  cryptoAsset: 'USDT', fiatCurrency: 'USD', fiatAmount: 10_000n,
+  cryptoAsset: 'USDT', fiatCurrency: 'EUR', fiatAmount: 10_000n,
   config: { network: 'tron', paymentMethod: 'credit_debit_card', referrerDomain: 'yourdomain.com' }
 })
 ```
@@ -119,7 +119,7 @@ await transak.buy({
 **Notes**
 
 - **`referrerDomain` (required for `buy`/`sell`)** — Transak's Create Widget URL API requires `config.referrerDomain` (your web domain or app package name); the widget URL fails without it. It may need allow-listing in the Partner dashboard. `quoteBuy`/`quoteSell` don't need it.
-- **Conventions** — `cryptoAsset`/`fiatCurrency` are upper-case (`ETH`, `USD`), `network`/`paymentMethod` lower-case (`ethereum`, `credit_debit_card`). They're matched exactly, with no normalisation (a wrong case throws `Cannot find info for cryptoAsset and fiatCurrency`). Fetch the exact values with the [supported-currencies methods](#supported-currencies-and-countries).
+- **Conventions** — `cryptoAsset`/`fiatCurrency` are upper-case (`ETH`, `EUR`), `network`/`paymentMethod` lower-case (`ethereum`, `credit_debit_card`). They're matched exactly, with no normalisation (a wrong case throws `Cannot find info for cryptoAsset and fiatCurrency`). Fetch the exact values with the [supported-currencies methods](#supported-currencies-and-countries).
 - **Multi-network assets** — a symbol like `USDT` exists on several chains; `config.network` picks one (first match if omitted).
 - **Wallet address** — resolved from `recipient`/`refundAddress`, else the bound account's address, else the Transak widget prompts the user. `quote*`, `getTransactionDetail`, and `getSupported*` never use the account.
 
@@ -136,7 +136,7 @@ const detail = await transak.getTransactionDetail('order-id')
 // {
 //   status: 'completed',        // 'in_progress' | 'failed' | 'completed'
 //   cryptoAsset: 'ETH',
-//   fiatCurrency: 'USD',
+//   fiatCurrency: 'EUR',
 //   metadata: { id: 'order-id', status: 'COMPLETED', /* …full Transak order */ }
 // }
 ```
@@ -156,7 +156,7 @@ await transak.getSupportedCryptoAssets()
 // [{ code: 'ETH', networkCode: 'ethereum', decimals: 18, name, metadata }, …]
 
 await transak.getSupportedFiatCurrencies()
-// [{ code: 'USD', decimals: 2, name, metadata }, …]
+// [{ code: 'EUR', decimals: 2, name, metadata }, …]
 
 await transak.getSupportedCountries()
 // [{ code: 'US', isBuyAllowed: true, isSellAllowed: true, name, metadata }, …]
@@ -194,8 +194,8 @@ await transak.getSupportedCountries()
 ### `buy(options)` / `sell(options)`
 
 - `cryptoAsset` (string): The crypto asset code (e.g. `'ETH'`).
-- `fiatCurrency` (string): The fiat currency code (e.g. `'USD'`).
-- `fiatAmount` (number | bigint, optional): The fiat amount, in base units (e.g. `10_000n` = 100 USD in cents).
+- `fiatCurrency` (string): The fiat currency code (e.g. `'EUR'`).
+- `fiatAmount` (number | bigint, optional): The fiat amount, in base units (e.g. `10_000n` = 100 EUR in cents).
 - `cryptoAmount` (number | bigint, optional): The crypto amount, in base units (e.g. `1_000_000_000_000_000_000n` = 1 ETH in wei).
 - `recipient` (string, optional, `buy` only): The destination wallet address. Falls back to the account address.
 - `refundAddress` (string, optional, `sell` only): The refund wallet address. Falls back to the account address.

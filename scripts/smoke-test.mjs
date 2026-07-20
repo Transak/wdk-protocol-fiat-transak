@@ -134,10 +134,10 @@ await step('getSupportedCountries', () => transak.getSupportedCountries())
 
 // Choose real values from the fetched lists (fall back to the first entry).
 const asset = cryptos?.find((a) => a.code === 'ETH' && a.networkCode === 'ethereum') || pick(cryptos)
-const fiat = fiats?.find((c) => c.code === 'USD') || pick(fiats)
+const fiat = fiats?.find((c) => c.code === 'EUR') || pick(fiats)
 
 if (asset && fiat) {
-  const fiatAmount = baseUnits(100, fiat.decimals) // 100 USD in cents
+  const fiatAmount = baseUnits(100, fiat.decimals) // 100 EUR in cents
   const cryptoAmount = 10n ** BigInt(asset.decimals) / 100n // 0.01 of the asset, in base units
   const paymentMethod = fiat.metadata?.paymentOptions?.[0]?.id // first available, if any
   const config = { network: asset.networkCode, ...(paymentMethod ? { paymentMethod } : {}) }
