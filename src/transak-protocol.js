@@ -300,19 +300,33 @@ function toWdkStatus (transakStatus) {
   }
 }
 
+// These tables are the source of truth instead, per the ISO 4217 standard.
+const ISO_4217_ZERO_DECIMAL_CURRENCIES = new Set([
+  'BIF', 'CLP', 'DJF', 'GNF', 'ISK', 'JPY', 'KMF', 'KRW', 'PYG', 'RWF',
+  'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
+])
+const ISO_4217_THREE_DECIMAL_CURRENCIES = new Set([
+  'BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'
+])
+const ISO_4217_FOUR_DECIMAL_CURRENCIES = new Set([
+  'CLF', 'UYW'
+])
+const ISO_4217_DEFAULT_DECIMALS = 2
+
 /**
- * Gets the number of decimal places for a fiat currency.
+ * Gets the number of decimal places for a fiat currency's smallest unit, per
+ * the ISO 4217 standard.
  * @private
  * @param {TransakFiatCurrencyDetails} currencyDetail
  * @returns {number}
  */
 const _getFiatDecimals = (currencyDetail) => {
-  const decimals = currencyDetail.roundOff
+  const code = currencyDetail.symbol?.toUpperCase()
 
-  if (typeof decimals !== 'number') {
-    throw new Error(`Could not determine decimals for fiat currency: ${currencyDetail.symbol}`)
-  }
-  return decimals
+  if (ISO_4217_ZERO_DECIMAL_CURRENCIES.has(code)) return 0
+  if (ISO_4217_THREE_DECIMAL_CURRENCIES.has(code)) return 3
+  if (ISO_4217_FOUR_DECIMAL_CURRENCIES.has(code)) return 4
+  return ISO_4217_DEFAULT_DECIMALS
 }
 
 /**
