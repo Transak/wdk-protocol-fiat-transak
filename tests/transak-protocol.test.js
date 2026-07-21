@@ -177,7 +177,7 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         cryptoAmount: 1n,
         fiatAmount: 1n
-      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     })
 
     test('should throw when neither cryptoAmount nor fiatAmount is provided', async () => {
@@ -266,37 +266,6 @@ describe('TransakProtocol', () => {
       })
     })
 
-    test('should use the refundAddress as the wallet address when provided', async () => {
-      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
-      global.fetch = createFetchMock()
-
-      await transak.sell({
-        cryptoAsset: 'ETH',
-        fiatCurrency: 'USD',
-        cryptoAmount: 1_000_000_000_000_000_000n,
-        refundAddress: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8'
-      })
-
-      const [[widgetParams]] = widgetUrl.mock.calls
-      expect(widgetParams.walletAddress).toBe('0x2170Ed0880ac9A755fd29B2688956BD959F933F8')
-    })
-
-    test('should use the account wallet address when no refundAddress is provided', async () => {
-      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
-      global.fetch = createFetchMock()
-
-      transak = new TransakProtocol(mockAccount, config)
-      await transak.sell({
-        cryptoAsset: 'ETH',
-        fiatCurrency: 'USD',
-        cryptoAmount: 1_000_000_000_000_000_000n
-      })
-
-      const [[widgetParams]] = widgetUrl.mock.calls
-      expect(mockAccount.getAddress).toHaveBeenCalled()
-      expect(widgetParams.walletAddress).toBe(MOCK_ACCOUNT_ADDRESS)
-    })
-
     test('should throw when both cryptoAmount and fiatAmount are provided', async () => {
       global.fetch = createFetchMock()
 
@@ -305,7 +274,7 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         cryptoAmount: 1n,
         fiatAmount: 1n
-      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     })
 
     test('should throw when neither cryptoAmount nor fiatAmount is provided', async () => {
@@ -444,7 +413,7 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         cryptoAmount: 1n,
         fiatAmount: 1n
-      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     })
 
     test('should throw when neither cryptoAmount nor fiatAmount is provided', async () => {

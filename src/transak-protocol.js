@@ -63,7 +63,6 @@ import BigNumber from 'bignumber.js'
  * @property {boolean} [disableWalletAddressForm] - If 'true', the customer cannot edit the destination wallet address.
  * @property {boolean} [hideExchangeScreen] - If 'true', skips the exchange screen and takes the customer straight to the payment screen.
  * @property {boolean} [isFeeCalculationHidden] - If 'true', hides the fee breakdown from the customer.
- * @property {boolean} [lockAmount] - If 'true', locks the fiat/crypto amount and prevents the customer from modifying it.
  * @property {string} [defaultPaymentMethod] - Pre-select the payment method you want the customer to use.
  * @property {string} [paymentMethod] - Restrict the customer to a single payment method.
  * @property {string} [email] - The customer's email address. If you pass a valid email address, the customer won't be prompted to enter one.
@@ -250,7 +249,7 @@ import BigNumber from 'bignumber.js'
 
 /** @typedef {FiatQuote & { metadata: TransakQuote }} TransakSellQuote */
 
-/** @typedef {SellOptions & { config?: TransakSellParams }} TransakSellOptions */
+/** @typedef {Omit<SellOptions, 'refundAddress'> & { config?: TransakSellParams }} TransakSellOptions */
 
 /**
  * The assembled Transak widget parameters passed to the `widgetUrl` callback — send
@@ -303,10 +302,11 @@ function toWdkStatus (transakStatus) {
 
 /**
  * Gets the number of decimal places for a fiat currency.
+ * @private
  * @param {TransakFiatCurrencyDetails} currencyDetail
  * @returns {number}
  */
-function getFiatDecimals (currencyDetail) {
+const _getFiatDecimals = (currencyDetail) => {
   const decimals = currencyDetail.roundOff
 
   if (typeof decimals !== 'number') {
@@ -315,10 +315,23 @@ function getFiatDecimals (currencyDetail) {
   return decimals
 }
 
+/**
+ * Converts a base-unit amount (e.g. wei, cents) to the standard-unit string
+ * Transak's APIs expect, rounded down to the given display precision.
+ * @private
+ * @param {bigint | number | string} amount - The amount, in base units.
+ * @param {number} decimals - The base unit's decimal exponent.
+ * @param {number} roundOff - The number of decimal places to round to for display.
+ * @returns {string}
+ */
+const _toMajorUnits = (amount, decimals, roundOff) => {
+  return new BigNumber(amount).shiftedBy(-1 * decimals).toFixed(roundOff, 1)
+}
+
 const TRANSAK_ORIGINS = {
   API: {
-    PRODUCTION: 'https://api.transak.com/',
-    STAGING: 'https://api-stg.transak.com/'
+    PRODUCTION: 'https://api.transak.com',
+    STAGING: 'https://api-stg.transak.com'
   }
 }
 const TRANSAK_CACHE_TIME = 10 * 60 * 1000
@@ -420,7 +433,7 @@ export default class TransakProtocol extends FiatProtocol {
 
     const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
 
-    const fiatDecimals = getFiatDecimals(fiatInfo)
+    const fiatDecimals = _getFiatDecimals(fiatInfo)
 
     const widgetParams = {
       ...config,
@@ -432,17 +445,13 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     if ('cryptoAmount' in options && 'fiatAmount' in options) {
-      throw new Error('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+      throw new Error('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     }
 
     if ('cryptoAmount' in options) {
-      widgetParams.cryptoAmount = new BigNumber(options.cryptoAmount)
-        .shiftedBy(-1 * cryptoInfo.decimals)
-        .toFixed(cryptoInfo.roundOff, 1)
+      widgetParams.cryptoAmount = _toMajorUnits(options.cryptoAmount, cryptoInfo.decimals, cryptoInfo.roundOff)
     } else if ('fiatAmount' in options) {
-      widgetParams.fiatAmount = new BigNumber(options.fiatAmount)
-        .shiftedBy(-1 * fiatDecimals)
-        .toFixed(fiatInfo.roundOff, 1)
+      widgetParams.fiatAmount = _toMajorUnits(options.fiatAmount, fiatDecimals, fiatInfo.roundOff)
     } else {
       throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     }
@@ -471,7 +480,7 @@ export default class TransakProtocol extends FiatProtocol {
 
     const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
 
-    const fiatDecimals = getFiatDecimals(fiatInfo)
+    const fiatDecimals = _getFiatDecimals(fiatInfo)
 
     const params = {
       ...config,
@@ -483,17 +492,13 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     if ('cryptoAmount' in options && 'fiatAmount' in options) {
-      throw new Error('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+      throw new Error('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     }
 
     if ('cryptoAmount' in options) {
-      params.cryptoAmount = new BigNumber(options.cryptoAmount)
-        .shiftedBy(-1 * cryptoInfo.decimals)
-        .toFixed(cryptoInfo.roundOff, 1)
+      params.cryptoAmount = _toMajorUnits(options.cryptoAmount, cryptoInfo.decimals, cryptoInfo.roundOff)
     } else if ('fiatAmount' in options) {
-      params.fiatAmount = new BigNumber(options.fiatAmount)
-        .shiftedBy(-1 * fiatDecimals)
-        .toFixed(fiatInfo.roundOff, 1)
+      params.fiatAmount = _toMajorUnits(options.fiatAmount, fiatDecimals, fiatInfo.roundOff)
     } else {
       throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     }
@@ -525,9 +530,7 @@ export default class TransakProtocol extends FiatProtocol {
       cryptoCurrency: cryptoInfo.symbol,
       network: cryptoInfo.network.name,
       isBuyOrSell: 'SELL',
-      cryptoAmount: new BigNumber(cryptoAmount)
-        .shiftedBy(-1 * cryptoInfo.decimals)
-        .toFixed(cryptoInfo.roundOff, 1)
+      cryptoAmount: _toMajorUnits(cryptoAmount, cryptoInfo.decimals, cryptoInfo.roundOff)
     }
 
     const quote = await this._fetchQuote(params)
@@ -542,7 +545,7 @@ export default class TransakProtocol extends FiatProtocol {
    * @returns {Promise<SellResult>} The URL for the user to complete the sale.
    */
   async sell (options) {
-    const { cryptoAsset, fiatCurrency, refundAddress, config } = options
+    const { cryptoAsset, fiatCurrency, config } = options
 
     if (!this._widgetUrl) {
       throw new Error('A \'widgetUrl\' callback is required to create a Transak widget URL')
@@ -550,7 +553,7 @@ export default class TransakProtocol extends FiatProtocol {
 
     const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
 
-    const fiatDecimals = getFiatDecimals(fiatInfo)
+    const fiatDecimals = _getFiatDecimals(fiatInfo)
 
     const widgetParams = {
       ...config,
@@ -562,25 +565,15 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     if ('cryptoAmount' in options && 'fiatAmount' in options) {
-      throw new Error('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+      throw new Error('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     }
 
     if ('cryptoAmount' in options) {
-      widgetParams.cryptoAmount = new BigNumber(options.cryptoAmount)
-        .shiftedBy(-1 * cryptoInfo.decimals)
-        .toFixed(cryptoInfo.roundOff, 1)
+      widgetParams.cryptoAmount = _toMajorUnits(options.cryptoAmount, cryptoInfo.decimals, cryptoInfo.roundOff)
     } else if ('fiatAmount' in options) {
-      widgetParams.fiatAmount = new BigNumber(options.fiatAmount)
-        .shiftedBy(-1 * fiatDecimals)
-        .toFixed(fiatInfo.roundOff, 1)
+      widgetParams.fiatAmount = _toMajorUnits(options.fiatAmount, fiatDecimals, fiatInfo.roundOff)
     } else {
       throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
-    }
-
-    if (refundAddress) {
-      widgetParams.walletAddress = refundAddress
-    } else if (this._account) {
-      widgetParams.walletAddress = await this._account.getAddress()
     }
 
     const sellUrl = await this._widgetUrl(widgetParams)
@@ -622,7 +615,7 @@ export default class TransakProtocol extends FiatProtocol {
    * @returns {Promise<TransakQuote>}
    */
   async _fetchQuote (params) {
-    const url = new URL('api/v1/pricing/public/quotes', this._apiOrigin)
+    const url = new URL('/api/v1/pricing/public/quotes', this._apiOrigin)
 
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
@@ -655,7 +648,7 @@ export default class TransakProtocol extends FiatProtocol {
    * @returns {FiatQuote & { metadata: TransakQuote }}
    */
   _toFiatQuote (quote, cryptoInfo, fiatInfo) {
-    const fiatDecimals = getFiatDecimals(fiatInfo)
+    const fiatDecimals = _getFiatDecimals(fiatInfo)
 
     const cryptoAmount = new BigNumber(quote.cryptoAmount).shiftedBy(cryptoInfo.decimals)
     const fiatAmount = new BigNumber(quote.fiatAmount).shiftedBy(fiatDecimals)
@@ -679,7 +672,7 @@ export default class TransakProtocol extends FiatProtocol {
     const now = Date.now()
 
     if (!this._supportedCryptoAssetsCache || (now - this._supportedCryptoAssetsCache.timestamp >= this._cacheThreshold)) {
-      const url = new URL('cryptocoverage/api/v1/public/crypto-currencies', this._apiOrigin)
+      const url = new URL('/cryptocoverage/api/v1/public/crypto-currencies', this._apiOrigin)
 
       const resp = await fetch(url.toString(), {
         headers: {
@@ -717,7 +710,7 @@ export default class TransakProtocol extends FiatProtocol {
     const now = Date.now()
 
     if (!this._supportedFiatCurrenciesCache || (now - this._supportedFiatCurrenciesCache.timestamp >= this._cacheThreshold)) {
-      const url = new URL('fiat/public/v1/currencies/fiat-currencies', this._apiOrigin)
+      const url = new URL('/fiat/public/v1/currencies/fiat-currencies', this._apiOrigin)
 
       const resp = await fetch(url.toString(), {
         headers: {
@@ -775,7 +768,7 @@ export default class TransakProtocol extends FiatProtocol {
 
     return fiatCurrencies.map((currencyDetail) => ({
       code: currencyDetail.symbol,
-      decimals: getFiatDecimals(currencyDetail),
+      decimals: _getFiatDecimals(currencyDetail),
       name: currencyDetail.name,
       metadata: currencyDetail
     }))
@@ -787,7 +780,7 @@ export default class TransakProtocol extends FiatProtocol {
    * @returns {Promise<TransakSupportedCountry[]>} An array of supported countries.
    */
   async getSupportedCountries () {
-    const url = new URL('api/v2/countries', this._apiOrigin)
+    const url = new URL('/api/v2/countries', this._apiOrigin)
 
     const resp = await fetch(url.toString(), {
       headers: {
