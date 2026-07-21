@@ -330,16 +330,16 @@ const _getFiatDecimals = (currencyDetail) => {
 }
 
 /**
- * Converts a base-unit amount (e.g. wei, cents) to the standard-unit string
+ * Converts a base-unit amount (e.g. wei, cents) to the standard-unit number
  * Transak's APIs expect, rounded down to the given display precision.
  * @private
  * @param {bigint | number | string} amount - The amount, in base units.
  * @param {number} decimals - The base unit's decimal exponent.
  * @param {number} roundOff - The number of decimal places to round to for display.
- * @returns {string}
+ * @returns {number}
  */
 const _toMajorUnits = (amount, decimals, roundOff) => {
-  return new BigNumber(amount).shiftedBy(-1 * decimals).toFixed(roundOff, 1)
+  return Number(new BigNumber(amount).shiftedBy(-1 * decimals).toFixed(roundOff, 1))
 }
 
 const TRANSAK_ORIGINS = {
@@ -796,12 +796,15 @@ export default class TransakProtocol extends FiatProtocol {
   async getSupportedCountries () {
     const url = new URL('/api/v2/countries', this._apiOrigin)
 
-    const resp = await fetch(url.toString(), {
-      headers: {
-        accept: 'application/json',
-        'x-api-key': this._apiKey
-      }
-    })
+    const [resp, fiatCurrencies] = await Promise.all([
+      fetch(url.toString(), {
+        headers: {
+          accept: 'application/json',
+          'x-api-key': this._apiKey
+        }
+      }),
+      this._fetchAndCacheSupportedFiatCurrencies()
+    ])
 
     if (!resp.ok) {
       throw new Error(`Failed to fetch supported countries: ${resp.status} ${resp.statusText}`)
@@ -814,11 +817,15 @@ export default class TransakProtocol extends FiatProtocol {
       throw new Error('Failed to fetch supported countries')
     }
 
+    const fiatCurrencyByCode = new Map(fiatCurrencies.map((currency) => [currency.symbol, currency]))
+
     return transakSupportedCountries.map((countryDetail) => {
+      const fiatCurrency = fiatCurrencyByCode.get(countryDetail.currencyCode)
+
       return {
         code: countryDetail.alpha2 || countryDetail.alpha3,
-        isBuyAllowed: countryDetail.isAllowed,
-        isSellAllowed: countryDetail.isAllowed,
+        isBuyAllowed: fiatCurrency?.isAllowed === true,
+        isSellAllowed: fiatCurrency?.isPayOutAllowed === true,
         name: countryDetail.name,
         metadata: countryDetail
       }

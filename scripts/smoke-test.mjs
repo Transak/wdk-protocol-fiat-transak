@@ -138,7 +138,7 @@ const fiat = fiats?.find((c) => c.code === 'EUR') || pick(fiats)
 
 if (asset && fiat) {
   const fiatAmount = baseUnits(100, fiat.decimals) // 100 EUR in cents
-  const cryptoAmount = 10n ** BigInt(asset.decimals) / 100n // 0.01 of the asset, in base units
+  const cryptoAmount = 10n ** BigInt(asset.decimals) / 2n // 0.5 of the asset, in base units
   const paymentMethod = fiat.metadata?.paymentOptions?.[0]?.id // first available, if any
   const config = { network: asset.networkCode, ...(paymentMethod ? { paymentMethod } : {}) }
   // The widget-URL flow additionally requires referrerDomain.
@@ -150,7 +150,7 @@ if (asset && fiat) {
   await step('quoteSell', () => transak.quoteSell({ cryptoAsset: asset.code, fiatCurrency: fiat.code, cryptoAmount, config }))
 
   await step('buy (widget URL)', () => transak.buy({ cryptoAsset: asset.code, fiatCurrency: fiat.code, fiatAmount, recipient: WALLET, config: widgetConfig }))
-  await step('sell (widget URL)', () => transak.sell({ cryptoAsset: asset.code, fiatCurrency: fiat.code, cryptoAmount, refundAddress: WALLET, config: widgetConfig }))
+  await step('sell (widget URL)', () => transak.sell({ cryptoAsset: asset.code, fiatCurrency: fiat.code, cryptoAmount, config: widgetConfig }))
 } else {
   console.error('✗ could not resolve a crypto asset / fiat currency from the supported lists — skipping quotes & widget URLs')
 }

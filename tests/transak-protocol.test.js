@@ -83,7 +83,7 @@ describe('TransakProtocol', () => {
         cryptoCurrencyCode: 'ETH',
         network: 'ethereum',
         fiatCurrency: 'USD',
-        cryptoAmount: '1.00000'
+        cryptoAmount: 1
       })
       expect(result).toEqual({ buyUrl: MOCK_WIDGET_URL })
     })
@@ -105,7 +105,7 @@ describe('TransakProtocol', () => {
         productsAvailed: 'BUY',
         cryptoCurrencyCode: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: '1000.00'
+        fiatAmount: 1000
       })
       expect(result).toEqual({ buyUrl: MOCK_WIDGET_URL })
     })
@@ -224,7 +224,7 @@ describe('TransakProtocol', () => {
         cryptoCurrencyCode: 'ETH',
         network: 'ethereum',
         fiatCurrency: 'USD',
-        cryptoAmount: '1.00000'
+        cryptoAmount: 1
       })
       expect(result).toEqual({ sellUrl: MOCK_WIDGET_URL })
     })
@@ -246,7 +246,7 @@ describe('TransakProtocol', () => {
         productsAvailed: 'SELL',
         cryptoCurrencyCode: 'ETH',
         fiatCurrency: 'USD',
-        fiatAmount: '1000.00'
+        fiatAmount: 1000
       })
       expect(result).toEqual({ sellUrl: MOCK_WIDGET_URL })
     })
@@ -380,7 +380,7 @@ describe('TransakProtocol', () => {
         cryptoCurrency: 'ETH',
         network: 'ethereum',
         isBuyOrSell: 'BUY',
-        fiatAmount: '1000.00', // converted to standard units for Transak
+        fiatAmount: '1000', // converted to standard units for Transak
         paymentMethod: 'credit_debit_card'
       })
       // The raw cryptoAsset must not leak into the pricing query.
@@ -474,7 +474,7 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         cryptoCurrency: 'ETH',
         isBuyOrSell: 'SELL',
-        cryptoAmount: '0.50000', // converted to standard units for Transak
+        cryptoAmount: '0.5', // converted to standard units for Transak
         paymentMethod: 'sepa_bank_transfer'
       })
 
@@ -578,35 +578,55 @@ describe('TransakProtocol', () => {
   })
 
   describe('getSupportedCountries', () => {
+    // isBuyAllowed/isSellAllowed are derived from the matching fiat currency's
+    // isAllowed/isPayOutAllowed flags (looked up via currencyCode), not the
+    // country's own isAllowed flag.
+    const MOCK_COUNTRY_FIAT = [
+      { symbol: 'USD', name: 'US Dollar', isAllowed: true, isPayOutAllowed: true },
+      { symbol: 'EUR', name: 'The Euro', isAllowed: true } // isPayOutAllowed omitted -> sell not allowed
+    ]
+
     const MOCK_COUNTRIES = [
-      { alpha2: 'US', alpha3: 'USA', name: 'United States', isAllowed: true },
-      { alpha3: 'CAN', name: 'Canada', isAllowed: false } // No alpha2 to test fallback
+      { alpha2: 'US', alpha3: 'USA', name: 'United States', currencyCode: 'USD', isAllowed: true },
+      { alpha2: 'FR', alpha3: 'FRA', name: 'France', currencyCode: 'EUR', isAllowed: true },
+      { alpha3: 'CAN', name: 'Canada', currencyCode: 'CAD', isAllowed: false } // No alpha2 to test fallback; no matching fiat currency
     ]
 
     test('should successfully return supported countries', async () => {
-      global.fetch = createFetchMock({ countries: MOCK_COUNTRIES })
+      global.fetch = createFetchMock({ countries: MOCK_COUNTRIES, fiat: MOCK_COUNTRY_FIAT })
 
       const countries = await transak.getSupportedCountries()
 
-      expect(countries).toHaveLength(2)
+      expect(countries).toHaveLength(3)
       expect(countries[0].code).toBe('US')
       expect(countries[0].name).toBe('United States')
       expect(countries[0].isBuyAllowed).toBe(true)
       expect(countries[0].isSellAllowed).toBe(true)
       expect(countries[0].metadata).toEqual(MOCK_COUNTRIES[0])
 
-      expect(countries[1].code).toBe('CAN')
-      expect(countries[1].isBuyAllowed).toBe(false)
+      expect(countries[1].code).toBe('FR')
+      expect(countries[1].isBuyAllowed).toBe(true)
+      expect(countries[1].isSellAllowed).toBe(false)
+
+      expect(countries[2].code).toBe('CAN')
+      expect(countries[2].isBuyAllowed).toBe(false)
+      expect(countries[2].isSellAllowed).toBe(false)
     })
 
     test('should throw when fetch fails', async () => {
-      global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500, statusText: 'Error' })
+      global.fetch = jest.fn().mockImplementation((url) => {
+        if (url.includes('fiat-currencies')) return Promise.resolve({ ok: true, json: jest.fn().mockResolvedValue({ response: MOCK_FIAT }) })
+        return Promise.resolve({ ok: false, status: 500, statusText: 'Error' })
+      })
 
       await expect(transak.getSupportedCountries()).rejects.toThrow('Failed to fetch supported countries: 500 Error')
     })
 
     test('should throw when data is invalid', async () => {
-      global.fetch = jest.fn().mockResolvedValue({ ok: true, json: jest.fn().mockResolvedValue({ response: 'not an array' }) })
+      global.fetch = jest.fn().mockImplementation((url) => {
+        if (url.includes('fiat-currencies')) return Promise.resolve({ ok: true, json: jest.fn().mockResolvedValue({ response: MOCK_FIAT }) })
+        return Promise.resolve({ ok: true, json: jest.fn().mockResolvedValue({ response: 'not an array' }) })
+      })
 
       await expect(transak.getSupportedCountries()).rejects.toThrow('Failed to fetch supported countries')
     })
