@@ -55,7 +55,7 @@ const widgetUrl = async (widgetParams) => {
   const token = await accessToken()
   const res = await fetch(`${GATEWAY}/api/v2/auth/session`, {
     method: 'POST',
-    headers: { 'access-token': token, 'content-type': 'application/json', 'x-user-ip': USER_IP },
+    headers: { 'x-api-key': API_KEY, 'access-token': token, 'content-type': 'application/json', 'x-user-ip': USER_IP },
     body: JSON.stringify({ widgetParams })
   })
   if (!res.ok) throw new Error(`auth/session ${res.status}: ${await res.text()}`)

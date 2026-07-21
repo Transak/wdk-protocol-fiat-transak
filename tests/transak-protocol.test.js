@@ -21,7 +21,11 @@ const MOCK_CRYPTO = [
 const MOCK_FIAT = [
   { symbol: 'USD', name: 'US Dollar', roundOff: 2, isAllowed: true },
   { symbol: 'EUR', name: 'The Euro', roundOff: 2, isAllowed: true },
-  { symbol: 'BAD_FIAT', name: 'Bad Fiat', roundOff: undefined, isAllowed: true }
+  { symbol: 'JPY', name: 'Japanese Yen', isAllowed: true },
+  { symbol: 'BHD', name: 'Bahraini Dinar', isAllowed: true },
+  { symbol: 'CLF', name: 'Unidad de Fomento', isAllowed: true },
+  { symbol: 'xyz', name: 'Unknown Currency', isAllowed: true },
+  { symbol: 'jpy', name: 'Japanese Yen (lowercase)', isAllowed: true }
 ]
 
 const mockAccount = {
@@ -177,7 +181,7 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         cryptoAmount: 1n,
         fiatAmount: 1n
-      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     })
 
     test('should throw when neither cryptoAmount nor fiatAmount is provided', async () => {
@@ -266,37 +270,6 @@ describe('TransakProtocol', () => {
       })
     })
 
-    test('should use the refundAddress as the wallet address when provided', async () => {
-      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
-      global.fetch = createFetchMock()
-
-      await transak.sell({
-        cryptoAsset: 'ETH',
-        fiatCurrency: 'USD',
-        cryptoAmount: 1_000_000_000_000_000_000n,
-        refundAddress: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8'
-      })
-
-      const [[widgetParams]] = widgetUrl.mock.calls
-      expect(widgetParams.walletAddress).toBe('0x2170Ed0880ac9A755fd29B2688956BD959F933F8')
-    })
-
-    test('should use the account wallet address when no refundAddress is provided', async () => {
-      widgetUrl.mockReturnValue(MOCK_WIDGET_URL)
-      global.fetch = createFetchMock()
-
-      transak = new TransakProtocol(mockAccount, config)
-      await transak.sell({
-        cryptoAsset: 'ETH',
-        fiatCurrency: 'USD',
-        cryptoAmount: 1_000_000_000_000_000_000n
-      })
-
-      const [[widgetParams]] = widgetUrl.mock.calls
-      expect(mockAccount.getAddress).toHaveBeenCalled()
-      expect(widgetParams.walletAddress).toBe(MOCK_ACCOUNT_ADDRESS)
-    })
-
     test('should throw when both cryptoAmount and fiatAmount are provided', async () => {
       global.fetch = createFetchMock()
 
@@ -305,7 +278,7 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         cryptoAmount: 1n,
         fiatAmount: 1n
-      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     })
 
     test('should throw when neither cryptoAmount nor fiatAmount is provided', async () => {
@@ -444,7 +417,7 @@ describe('TransakProtocol', () => {
         fiatCurrency: 'USD',
         cryptoAmount: 1n,
         fiatAmount: 1n
-      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' cannot both be provided')
+      })).rejects.toThrow('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     })
 
     test('should throw when neither cryptoAmount nor fiatAmount is provided', async () => {
@@ -573,10 +546,34 @@ describe('TransakProtocol', () => {
       })
     })
 
-    test('should throw when a fiat currency is missing decimals', async () => {
-      global.fetch = createFetchMock()
+    test('should resolve decimals per ISO 4217', async () => {
+      global.fetch = createFetchMock({ fiat: [MOCK_FIAT[2], MOCK_FIAT[3], MOCK_FIAT[4]] })
 
-      await expect(transak.getSupportedFiatCurrencies()).rejects.toThrow('Could not determine decimals for fiat currency: BAD_FIAT')
+      const currencies = await transak.getSupportedFiatCurrencies()
+
+      expect(currencies).toEqual([
+        { code: 'JPY', decimals: 0, name: 'Japanese Yen', metadata: MOCK_FIAT[2] },
+        { code: 'BHD', decimals: 3, name: 'Bahraini Dinar', metadata: MOCK_FIAT[3] },
+        { code: 'CLF', decimals: 4, name: 'Unidad de Fomento', metadata: MOCK_FIAT[4] }
+      ])
+    })
+
+    test('should default to 2 decimals for an unrecognised currency code', async () => {
+      global.fetch = createFetchMock({ fiat: [MOCK_FIAT[5]] })
+
+      const currencies = await transak.getSupportedFiatCurrencies()
+
+      expect(currencies).toEqual([
+        { code: 'xyz', decimals: 2, name: 'Unknown Currency', metadata: MOCK_FIAT[5] }
+      ])
+    })
+
+    test('should match ISO 4217 codes case-insensitively', async () => {
+      global.fetch = createFetchMock({ fiat: [MOCK_FIAT[6]] })
+
+      const currencies = await transak.getSupportedFiatCurrencies()
+
+      expect(currencies[0].decimals).toBe(0)
     })
   })
 

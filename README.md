@@ -263,7 +263,7 @@ async function createWidgetUrl (widgetParams, userIp) {
   // 2. Create the widget session and return its URL.
   const sessionRes = await fetch('https://api-gateway.transak.com/api/v2/auth/session', {
     method: 'POST',
-    headers: { 'access-token': accessToken, 'content-type': 'application/json', 'x-user-ip': userIp },
+    headers: { 'x-api-key': process.env.TRANSAK_API_KEY, 'access-token': accessToken, 'content-type': 'application/json', 'x-user-ip': userIp },
     body: JSON.stringify({ widgetParams })
   })
   const { data: { widgetUrl } } = await sessionRes.json()
