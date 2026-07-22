@@ -98,8 +98,7 @@ const { buyUrl } = await transak.buy({
 const { sellUrl } = await transak.sell({
   cryptoAsset: 'ETH',
   fiatCurrency: 'EUR',
-  cryptoAmount: 100_000_000_000_000_000n, // 0.1 ETH in wei
-  refundAddress: '0xabc'                   // optional
+  cryptoAmount: 100_000_000_000_000_000n // 0.1 ETH in wei
 })
 
 // Quote (no widget opened)
@@ -121,7 +120,7 @@ await transak.buy({
 - **`referrerDomain` (required for `buy`/`sell`)** — Transak's Create Widget URL API requires `config.referrerDomain` (your web domain or app package name); the widget URL fails without it. It may need allow-listing in the Partner dashboard. `quoteBuy`/`quoteSell` don't need it.
 - **Conventions** — `cryptoAsset`/`fiatCurrency` are upper-case (`ETH`, `EUR`), `network`/`paymentMethod` lower-case (`ethereum`, `credit_debit_card`). They're matched exactly, with no normalisation (a wrong case throws `Cannot find info for cryptoAsset and fiatCurrency`). Fetch the exact values with the [supported-currencies methods](#supported-currencies-and-countries).
 - **Multi-network assets** — a symbol like `USDT` exists on several chains; `config.network` picks one (first match if omitted).
-- **Wallet address** — resolved from `recipient`/`refundAddress`, else the bound account's address, else the Transak widget prompts the user. `quote*`, `getTransactionDetail`, and `getSupported*` never use the account.
+- **Wallet address** — resolved from `recipient`, else the bound account's address, else the Transak widget prompts the user. `quote*`, `getTransactionDetail`, and `getSupported*` never use the account.
 
 ---
 
@@ -198,7 +197,6 @@ await transak.getSupportedCountries()
 - `fiatAmount` (number | bigint, optional): The fiat amount, in base units (e.g. `10_000n` = 100 EUR in cents).
 - `cryptoAmount` (number | bigint, optional): The crypto amount, in base units (e.g. `1_000_000_000_000_000_000n` = 1 ETH in wei).
 - `recipient` (string, optional, `buy` only): The destination wallet address. Falls back to the account address.
-- `refundAddress` (string, optional, `sell` only): The refund wallet address. Falls back to the account address.
 - `config` (object, optional): Additional Transak widget parameters, including `network`.
 
 Returns `Promise<{ buyUrl }>` / `Promise<{ sellUrl }>` — the URL your `widgetUrl` callback produced, e.g. `https://global.transak.com/?apiKey=…&sessionId=…`.
