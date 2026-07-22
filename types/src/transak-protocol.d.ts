@@ -160,29 +160,9 @@ export type TransakWidgetUiParams = {
      */
     themeColor?: string;
     /**
-     * - A comma-separated list of hex colors used for the widget background.
-     */
-    backgroundColors?: string;
-    /**
-     * - A comma-separated list of hex colors used for the widget borders.
-     */
-    borderColors?: string;
-    /**
      * - The default appearance for the widget.
      */
     colorMode?: "DARK" | "LIGHT";
-    /**
-     * - The fiat currency code selected by default. The customer can still select another currency.
-     */
-    defaultFiatCurrency?: string;
-    /**
-     * - Locks the fiat currency the customer can transact with.
-     */
-    fiatCurrency?: string;
-    /**
-     * - The ISO 3166-1 alpha-2 country code used to pre-select the customer's country.
-     */
-    countryCode?: string;
     /**
      * - A URL to redirect the customer to after the flow is complete. Must use 'https://'.
      */
@@ -195,10 +175,6 @@ export type TransakWidgetUiParams = {
      * - If 'true', hides the widget navigation menu.
      */
     hideMenu?: string;
-    /**
-     * - The ID of the theme created for your application or website.
-     */
-    themeId?: string;
 };
 /**
  * Widget UI parameters specific to the buy (on-ramp) flow.
@@ -228,10 +204,6 @@ export type TransakWidgetUiBuyParams = {
      * - If 'true', hides the fee breakdown from the customer.
      */
     isFeeCalculationHidden?: boolean;
-    /**
-     * - If 'true', locks the fiat/crypto amount and prevents the customer from modifying it.
-     */
-    lockAmount?: boolean;
     /**
      * - Pre-select the payment method you want the customer to use.
      */
@@ -286,10 +258,6 @@ export type TransakWidgetUiSellParams = {
      * - If 'true', hides the fee breakdown from the customer.
      */
     isFeeCalculationHidden?: boolean;
-    /**
-     * - If 'true', locks the fiat/crypto amount and prevents the customer from modifying it.
-     */
-    lockAmount?: boolean;
     /**
      * - Pre-select the payout method you want the customer to use.
      */
@@ -730,7 +698,7 @@ export type TransakQuoteSellOptions = Omit<SellCommonOptions, "refundAddress"> &
 export type TransakSellQuote = FiatQuote & {
     metadata: TransakQuote;
 };
-export type TransakSellOptions = SellOptions & {
+export type TransakSellOptions = Omit<SellOptions, "refundAddress"> & {
     config?: TransakSellParams;
 };
 /**

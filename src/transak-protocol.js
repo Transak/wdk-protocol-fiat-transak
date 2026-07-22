@@ -42,16 +42,10 @@ import BigNumber from 'bignumber.js'
  * See https://docs.transak.com/customization/query-parameters for the full list.
  * @typedef {Object} TransakWidgetUiParams
  * @property {string} [themeColor] - The primary color of the widget, as a hex code without the leading '#'.
- * @property {string} [backgroundColors] - A comma-separated list of hex colors used for the widget background.
- * @property {string} [borderColors] - A comma-separated list of hex colors used for the widget borders.
  * @property {'DARK' | 'LIGHT'} [colorMode] - The default appearance for the widget.
- * @property {string} [defaultFiatCurrency] - The fiat currency code selected by default. The customer can still select another currency.
- * @property {string} [fiatCurrency] - Locks the fiat currency the customer can transact with.
- * @property {string} [countryCode] - The ISO 3166-1 alpha-2 country code used to pre-select the customer's country.
  * @property {string} [redirectURL] - A URL to redirect the customer to after the flow is complete. Must use 'https://'.
  * @property {string} [referrerDomain] - Your domain URL (web) or application package name (mobile). Recommended for allow-listing.
  * @property {string} [hideMenu] - If 'true', hides the widget navigation menu.
- * @property {string} [themeId] - The ID of the theme created for your application or website.
  */
 
 /**
@@ -82,7 +76,6 @@ import BigNumber from 'bignumber.js'
  * @property {boolean} [disableWalletAddressForm] - If 'true', the customer cannot edit the source wallet address.
  * @property {boolean} [hideExchangeScreen] - If 'true', skips the exchange screen and takes the customer straight to the payout screen.
  * @property {boolean} [isFeeCalculationHidden] - If 'true', hides the fee breakdown from the customer.
- * @property {boolean} [lockAmount] - If 'true', locks the fiat/crypto amount and prevents the customer from modifying it.
  * @property {string} [defaultPaymentMethod] - Pre-select the payout method you want the customer to use.
  * @property {string} [paymentMethod] - Restrict the customer to a single payout method.
  * @property {string} [email] - The customer's email address. If you pass a valid email address, the customer won't be prompted to enter one.
