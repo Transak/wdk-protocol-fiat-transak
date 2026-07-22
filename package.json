@@ -1,6 +1,6 @@
 {
   "name": "@tetherto/wdk-protocol-fiat-transak",
-  "version": "1.0.0-beta.1",
+  "version": "1.0.0",
   "description": "A simple package that lets @tetherto/wdk-wallet accounts interact with the Transak protocol",
   "keywords": [
     "wdk",
