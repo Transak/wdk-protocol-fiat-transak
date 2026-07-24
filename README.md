@@ -1,6 +1,6 @@
 # @tetherto/wdk-protocol-fiat-transak
 
-> This package is in beta. Please test in a dev setup first.
+<a href="https://docs.wdk.tether.io"><img src="https://raw.githubusercontent.com/tetherto/wdk-docs/refs/heads/main/public/assets/branding/wdk-banner-dark-circuit.png" alt="Built with WDK" width="140"></a>
 
 Builds Transak widget URLs and quotes for on-ramp (buy) and off-ramp (sell) flows. Works in both frontend and backend code.
 
