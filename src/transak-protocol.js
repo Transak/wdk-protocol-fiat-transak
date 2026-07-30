@@ -15,7 +15,10 @@
 'use strict'
 
 import { FiatProtocol } from '@tetherto/wdk-wallet/protocols'
+import { ValueError, NoSuchElementError } from '@tetherto/wdk-wallet'
 import BigNumber from 'bignumber.js'
+
+import { TransakApiError } from './errors.js'
 
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccount} IWalletAccount */
 /** @typedef {import('@tetherto/wdk-wallet').IWalletAccountReadOnly} IWalletAccountReadOnly */
@@ -39,7 +42,7 @@ import BigNumber from 'bignumber.js'
 
 /**
  * Widget UI parameters shared by the buy and sell flows.
- * See https://docs.transak.com/customization/query-parameters for the full list.
+ * @see https://docs.transak.com/customization/query-parameters
  * @typedef {Object} TransakWidgetUiParams
  * @property {string} [themeColor] - The primary color of the widget, as a hex code without the leading '#'.
  * @property {'DARK' | 'LIGHT'} [colorMode] - The default appearance for the widget.
@@ -101,15 +104,16 @@ import BigNumber from 'bignumber.js'
  */
 
 /**
+ * The network a Transak crypto asset lives on.
  * @typedef {Object} TransakNetworkDetails
  * @property {string} name - The network's Transak identifier (e.g. 'ethereum', 'tron').
  * @property {string} [chainId] - The chain ID, when applicable.
- * @property {Array<{ fiatCurrency: string, paymentMethod: string }>} [fiatCurrenciesNotSupported] - Fiat/payment-method combinations not supported on this network.
+ * @property {{ fiatCurrency: string, paymentMethod: string }[]} [fiatCurrenciesNotSupported] - Fiat/payment-method combinations not supported on this network.
  */
 
 /**
  * A crypto currency as returned by Transak's Get Crypto Currencies API.
- * See https://docs.transak.com/api/public/get-crypto-currencies.
+ * @see https://docs.transak.com/api/public/get-crypto-currencies
  * @typedef {Object} TransakCryptoCurrencyDetails
  * @property {string} coinId - Transak's internal coin identifier.
  * @property {string} name - The crypto currency's name.
@@ -127,11 +131,12 @@ import BigNumber from 'bignumber.js'
  * @property {*} [tokenIdentifier] - The token classification identifier.
  * @property {number} [minAmountForPayIn] - The minimum amount accepted for sell (pay-in) transactions.
  * @property {number} [maxAmountForPayIn] - The maximum amount accepted for sell (pay-in) transactions.
- * @property {Array<string>} [kycCountriesNotSupported] - Country codes where this asset is not supported.
+ * @property {string[]} [kycCountriesNotSupported] - Country codes where this asset is not supported.
  * @property {{ large?: string, small?: string, thumb?: string }} [image] - Icon URLs for the asset.
  */
 
 /**
+ * A payment/payout option available for a Transak fiat currency.
  * @typedef {Object} TransakPaymentOption
  * @property {string} id - The payment option's identifier (e.g. 'credit_debit_card').
  * @property {string} name - The payment option's display name.
@@ -143,9 +148,9 @@ import BigNumber from 'bignumber.js'
 
 /**
  * A fiat currency as returned by Transak's Get Fiat Currencies API.
- * See https://docs.transak.com/api/public/get-fiat-currencies.
  * Note: the fiat schema has no `decimals` field — `roundOff` is the number of
  * decimal places for the currency's smallest unit.
+ * @see https://docs.transak.com/api/public/get-fiat-currencies
  * @typedef {Object} TransakFiatCurrencyDetails
  * @property {string} symbol - The currency's code (e.g. 'USD').
  * @property {string} name - The currency's name.
@@ -153,15 +158,24 @@ import BigNumber from 'bignumber.js'
  * @property {boolean} [isPayOutAllowed] - Whether sell (off-ramp) payouts to this currency are supported.
  * @property {number} roundOff - The number of decimal places for this currency's smallest unit.
  * @property {boolean} [isPopular] - Whether the currency is flagged as popular.
- * @property {Array<string>} [supportingCountries] - ISO 3166-1 alpha-2 country codes that support this currency.
+ * @property {string[]} [supportingCountries] - ISO 3166-1 alpha-2 country codes that support this currency.
  * @property {string} [logoSymbol] - The country/region code used for the currency's logo.
  * @property {string} [icon] - The currency's icon (SVG markup or URL).
  * @property {string} [defaultCountryForNFT] - The default country used for NFT flows.
  * @property {string} [displayMessage] - A message shown when the currency is unavailable.
- * @property {Array<TransakPaymentOption>} [paymentOptions] - The payment options available for this currency.
+ * @property {TransakPaymentOption[]} [paymentOptions] - The payment options available for this currency.
  */
 
 /**
+ * A payment partner available in a Transak-supported country.
+ * @typedef {Object} TransakCountryPartner
+ * @property {string} currencyCode - The fiat currency code the partner supports.
+ * @property {boolean} isCardPayment - Whether the partner supports card payments.
+ * @property {string} name - The partner's identifier (e.g. 'transak').
+ */
+
+/**
+ * A country as returned by Transak's Get Countries API.
  * @typedef {Object} TransakCountryDetail
  * @property {string} alpha2 - The country's ISO 3166-1 alpha-2 code.
  * @property {string} alpha3 - The country's ISO 3166-1 alpha-3 code.
@@ -169,8 +183,8 @@ import BigNumber from 'bignumber.js'
  * @property {boolean} [isLightKycAllowed] - Whether residents of this country are eligible for light KYC.
  * @property {string} name - The country's name.
  * @property {string} [currencyCode] - The country's default fiat currency code.
- * @property {Array<string>} [supportedDocuments] - A list of supported identity documents for the country.
- * @property {Array<object>} [partners] - The payment partners available in the country.
+ * @property {string[]} [supportedDocuments] - A list of supported identity documents for the country.
+ * @property {TransakCountryPartner[]} [partners] - The payment partners available in the country.
  */
 
 /**
@@ -179,14 +193,16 @@ import BigNumber from 'bignumber.js'
  */
 
 /**
+ * A single item in a Transak quote's fee breakdown.
  * @typedef {Object} TransakFeeBreakdown
  * @property {string} name - The human readable name of the fee component.
  * @property {number} value - The fee amount, denominated in the fiat currency.
  * @property {string} [id] - The fee component's identifier.
- * @property {Array<string>} [ids] - The identifiers of the sub-components rolled up into this fee.
+ * @property {string[]} [ids] - The identifiers of the sub-components rolled up into this fee.
  */
 
 /**
+ * A quote for a Transak buy or sell, as returned by the pricing API.
  * @typedef {Object} TransakQuote
  * @property {string} quoteId - Unique identifier for the quote.
  * @property {number} conversionPrice - The exchange rate between the crypto currency and the fiat currency.
@@ -201,13 +217,14 @@ import BigNumber from 'bignumber.js'
  * @property {string} network - The network the crypto currency lives on.
  * @property {number} [feeDecimal] - The total fee expressed as a decimal fraction.
  * @property {number} totalFee - The total fee, denominated in the fiat currency.
- * @property {Array<TransakFeeBreakdown>} [feeBreakdown] - A breakdown of the individual fee components.
+ * @property {TransakFeeBreakdown[]} [feeBreakdown] - A breakdown of the individual fee components.
  * @property {string} [nonce] - A nonce associated with the quote.
  * @property {string} [cryptoLiquidityProvider] - The liquidity provider used for the quote.
- * @property {Array<object>} [notes] - Additional notes returned with the quote.
+ * @property {string[]} [notes] - Additional notes returned with the quote.
  */
 
 /**
+ * A Transak order, as returned by the Get Order API.
  * @typedef {Object} TransakOrder
  * @property {string} id - Unique identifier for the order.
  * @property {TransakOrderStatus} status - The order's status.
@@ -260,11 +277,12 @@ import BigNumber from 'bignumber.js'
  */
 
 /**
+ * Configuration for {@link TransakProtocol}.
  * @typedef {Object} TransakProtocolConfig
  * @property {string} apiKey - Your Transak partner API key.
  * @property {(widgetParams: TransakWidgetParams) => Promise<string>} [widgetUrl] - Required by `buy`/`sell`. Receives the assembled `widgetParams` object and must return a session-based widget URL. Create it on your backend by calling Transak's Create Widget URL API (which needs your API secret). `buy`/`sell` throw if it is not provided.
  * @property {(txId: string) => Promise<TransakOrder>} [getOrder] - Required by `getTransactionDetail`. Receives an order id and must return the Transak order. Fetch it on your backend by calling Transak's Get Order API (which needs a partner `access-token` minted from your API secret). `getTransactionDetail` throws if it is not provided.
- * @property {number} [cacheTime] - The duration in milliseconds to cache supported currencies.
+ * @property {number} [cacheTime] - The duration in milliseconds to cache supported currencies (default: 600,000 — 10 minutes).
  * @property {"PRODUCTION" | "STAGING"} [environment] - The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
  */
 
@@ -309,9 +327,8 @@ const ISO_4217_DEFAULT_DECIMALS = 2
 /**
  * Gets the number of decimal places for a fiat currency's smallest unit, per
  * the ISO 4217 standard.
- * @private
- * @param {TransakFiatCurrencyDetails} currencyDetail
- * @returns {number}
+ * @param {TransakFiatCurrencyDetails} currencyDetail - The fiat currency detail object.
+ * @returns {number} The number of decimal places for the currency's smallest unit.
  */
 const _getFiatDecimals = (currencyDetail) => {
   const code = currencyDetail.symbol?.toUpperCase()
@@ -325,11 +342,10 @@ const _getFiatDecimals = (currencyDetail) => {
 /**
  * Converts a base-unit amount (e.g. wei, cents) to the standard-unit number
  * Transak's APIs expect, rounded down to the given display precision.
- * @private
  * @param {bigint | number | string} amount - The amount, in base units.
  * @param {number} decimals - The base unit's decimal exponent.
  * @param {number} roundOff - The number of decimal places to round to for display.
- * @returns {number}
+ * @returns {number} The amount in standard units, rounded to `roundOff` decimal places.
  */
 const _toMajorUnits = (amount, decimals, roundOff) => {
   return Number(new BigNumber(amount).shiftedBy(-1 * decimals).toFixed(roundOff, 1))
@@ -397,16 +413,7 @@ export default class TransakProtocol extends FiatProtocol {
     return TRANSAK_ORIGINS.API[this._environment]
   }
 
-  /**
-   * Resolves the Transak crypto asset and fiat currency details for the given codes.
-   * Codes are matched case-sensitively against Transak's conventions, exactly as
-   * returned by `getSupportedCryptoAssets`/`getSupportedFiatCurrencies` (crypto and
-   * fiat symbols are upper-case, e.g. 'ETH'/'USD'; networks are lower-case, e.g. 'ethereum').
-   * @private
-   * @param {string} cryptoAsset - The crypto asset symbol (e.g. 'USDT').
-   * @param {string} fiatCurrency - The fiat currency code (e.g. 'USD').
-   * @param {string} [network] - An optional network used to disambiguate the crypto asset (e.g. 'ethereum').
-   */
+  /** @private */
   async _getAssetDetails (cryptoAsset, fiatCurrency, network) {
     const [cryptoAssets, fiatCurrencies] = await Promise.all([
       this._fetchAndCacheSupportedCryptoAssets(),
@@ -420,7 +427,7 @@ export default class TransakProtocol extends FiatProtocol {
       currency.symbol === fiatCurrency)
 
     if (!cryptoInfo || !fiatInfo) {
-      throw new Error('Cannot find info for cryptoAsset and fiatCurrency')
+      throw new NoSuchElementError('Cannot find info for cryptoAsset and fiatCurrency')
     }
     return { cryptoInfo, fiatInfo }
   }
@@ -430,12 +437,15 @@ export default class TransakProtocol extends FiatProtocol {
    * @override
    * @param {TransakBuyOptions} options - The options for the purchase.
    * @returns {Promise<BuyResult>} The URL for the user to complete the purchase.
+   * @throws {ValueError} If `widgetUrl` is not configured, or if both/neither of `cryptoAmount` and `fiatAmount` are provided.
+   * @throws {NoSuchElementError} If `cryptoAsset` or `fiatCurrency` cannot be resolved.
+   * @throws {TransakApiError} If fetching supported crypto assets or fiat currencies fails.
    */
   async buy (options) {
     const { cryptoAsset, fiatCurrency, recipient, config } = options
 
     if (!this._widgetUrl) {
-      throw new Error('A \'widgetUrl\' callback is required to create a Transak widget URL')
+      throw new ValueError('A \'widgetUrl\' callback is required to create a Transak widget URL')
     }
 
     const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
@@ -452,7 +462,7 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     if ('cryptoAmount' in options && 'fiatAmount' in options) {
-      throw new Error('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
+      throw new ValueError('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     }
 
     if ('cryptoAmount' in options) {
@@ -460,7 +470,7 @@ export default class TransakProtocol extends FiatProtocol {
     } else if ('fiatAmount' in options) {
       widgetParams.fiatAmount = _toMajorUnits(options.fiatAmount, fiatDecimals, fiatInfo.roundOff)
     } else {
-      throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
+      throw new ValueError('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     }
 
     if (recipient) {
@@ -481,6 +491,9 @@ export default class TransakProtocol extends FiatProtocol {
    * @override
    * @param {TransakQuoteBuyOptions} options - The options for the quote.
    * @returns {Promise<TransakBuyQuote>} A quote for the transaction.
+   * @throws {ValueError} If both/neither of `cryptoAmount` and `fiatAmount` are provided.
+   * @throws {NoSuchElementError} If `cryptoAsset` or `fiatCurrency` cannot be resolved.
+   * @throws {TransakApiError} If fetching the quote, supported crypto assets, or supported fiat currencies fails.
    */
   async quoteBuy (options) {
     const { cryptoAsset, fiatCurrency, config } = options
@@ -499,7 +512,7 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     if ('cryptoAmount' in options && 'fiatAmount' in options) {
-      throw new Error('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
+      throw new ValueError('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     }
 
     if ('cryptoAmount' in options) {
@@ -507,7 +520,7 @@ export default class TransakProtocol extends FiatProtocol {
     } else if ('fiatAmount' in options) {
       params.fiatAmount = _toMajorUnits(options.fiatAmount, fiatDecimals, fiatInfo.roundOff)
     } else {
-      throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
+      throw new ValueError('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     }
 
     const quote = await this._fetchQuote(params)
@@ -520,12 +533,15 @@ export default class TransakProtocol extends FiatProtocol {
    * @override
    * @param {TransakQuoteSellOptions} options - The options for the quote.
    * @returns {Promise<TransakSellQuote>} A quote for the transaction.
+   * @throws {ValueError} If `cryptoAmount` is not provided.
+   * @throws {NoSuchElementError} If `cryptoAsset` or `fiatCurrency` cannot be resolved.
+   * @throws {TransakApiError} If fetching the quote, supported crypto assets, or supported fiat currencies fails.
    */
   async quoteSell (options) {
     const { cryptoAsset, fiatCurrency, cryptoAmount, config } = options
 
     if (cryptoAmount === undefined) {
-      throw new Error('\'cryptoAmount\' must be provided')
+      throw new ValueError('\'cryptoAmount\' must be provided')
     }
 
     const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
@@ -550,12 +566,15 @@ export default class TransakProtocol extends FiatProtocol {
    * @override
    * @param {TransakSellOptions} options - The options for the sale.
    * @returns {Promise<SellResult>} The URL for the user to complete the sale.
+   * @throws {ValueError} If `widgetUrl` is not configured, or if both/neither of `cryptoAmount` and `fiatAmount` are provided.
+   * @throws {NoSuchElementError} If `cryptoAsset` or `fiatCurrency` cannot be resolved.
+   * @throws {TransakApiError} If fetching supported crypto assets or fiat currencies fails.
    */
   async sell (options) {
     const { cryptoAsset, fiatCurrency, config } = options
 
     if (!this._widgetUrl) {
-      throw new Error('A \'widgetUrl\' callback is required to create a Transak widget URL')
+      throw new ValueError('A \'widgetUrl\' callback is required to create a Transak widget URL')
     }
 
     const { cryptoInfo, fiatInfo } = await this._getAssetDetails(cryptoAsset, fiatCurrency, config?.network)
@@ -572,7 +591,7 @@ export default class TransakProtocol extends FiatProtocol {
     }
 
     if ('cryptoAmount' in options && 'fiatAmount' in options) {
-      throw new Error('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
+      throw new ValueError('\'cryptoAmount\' and \'fiatAmount\' both cannot be provided')
     }
 
     if ('cryptoAmount' in options) {
@@ -580,7 +599,7 @@ export default class TransakProtocol extends FiatProtocol {
     } else if ('fiatAmount' in options) {
       widgetParams.fiatAmount = _toMajorUnits(options.fiatAmount, fiatDecimals, fiatInfo.roundOff)
     } else {
-      throw new Error('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
+      throw new ValueError('Either \'cryptoAmount\' or \'fiatAmount\' must be provided')
     }
 
     const sellUrl = await this._widgetUrl(widgetParams)
@@ -599,10 +618,11 @@ export default class TransakProtocol extends FiatProtocol {
    * @override
    * @param {string} txId - The unique identifier of the order.
    * @returns {Promise<TransakTransactionDetail>} The transaction details.
+   * @throws {ValueError} If `getOrder` is not configured.
    */
   async getTransactionDetail (txId) {
     if (!this._getOrder) {
-      throw new Error('A \'getOrder\' callback is required to fetch a Transak order')
+      throw new ValueError('A \'getOrder\' callback is required to fetch a Transak order')
     }
 
     const transakOrder = await this._getOrder(txId)
@@ -615,12 +635,7 @@ export default class TransakProtocol extends FiatProtocol {
     }
   }
 
-  /**
-   * Fetches a quote from the Transak pricing API.
-   * @private
-   * @param {Record<string, unknown>} params - The query parameters for the quote.
-   * @returns {Promise<TransakQuote>}
-   */
+  /** @private */
   async _fetchQuote (params) {
     const url = new URL('/api/v1/pricing/public/quotes', this._apiOrigin)
 
@@ -638,7 +653,7 @@ export default class TransakProtocol extends FiatProtocol {
     })
 
     if (!resp.ok) {
-      throw new Error(`Failed to fetch Transak quote: ${resp.status} ${resp.statusText}`)
+      throw new TransakApiError(`Failed to fetch Transak quote: ${resp.status} ${resp.statusText}`)
     }
 
     const body = await resp.json()
@@ -646,14 +661,7 @@ export default class TransakProtocol extends FiatProtocol {
     return body.response ?? body
   }
 
-  /**
-   * Normalises a Transak quote into WDK's standardized FiatQuote format.
-   * @private
-   * @param {TransakQuote} quote
-   * @param {TransakCryptoCurrencyDetails} cryptoInfo
-   * @param {TransakFiatCurrencyDetails} fiatInfo
-   * @returns {FiatQuote & { metadata: TransakQuote }}
-   */
+  /** @private */
   _toFiatQuote (quote, cryptoInfo, fiatInfo) {
     const fiatDecimals = _getFiatDecimals(fiatInfo)
 
@@ -670,11 +678,7 @@ export default class TransakProtocol extends FiatProtocol {
     }
   }
 
-  /**
-   * Fetches and caches supported crypto assets from Transak.
-   * @private
-   * @returns {Promise<Array<TransakCryptoCurrencyDetails>>}
-   */
+  /** @private */
   async _fetchAndCacheSupportedCryptoAssets () {
     const now = Date.now()
 
@@ -689,14 +693,14 @@ export default class TransakProtocol extends FiatProtocol {
       })
 
       if (!resp.ok) {
-        throw new Error(`Failed to fetch Transak supported crypto assets: ${resp.status} ${resp.statusText}`)
+        throw new TransakApiError(`Failed to fetch Transak supported crypto assets: ${resp.status} ${resp.statusText}`)
       }
 
       const body = await resp.json()
       const data = body.response ?? body
 
       if (!Array.isArray(data)) {
-        throw new Error('Failed to fetch Transak supported crypto assets')
+        throw new TransakApiError('Failed to fetch Transak supported crypto assets')
       }
 
       this._supportedCryptoAssetsCache = {
@@ -708,11 +712,7 @@ export default class TransakProtocol extends FiatProtocol {
     return this._supportedCryptoAssetsCache?.data || []
   }
 
-  /**
-   * Fetches and caches supported fiat currencies from Transak.
-   * @private
-   * @returns {Promise<Array<TransakFiatCurrencyDetails>>}
-   */
+  /** @private */
   async _fetchAndCacheSupportedFiatCurrencies () {
     const now = Date.now()
 
@@ -727,14 +727,14 @@ export default class TransakProtocol extends FiatProtocol {
       })
 
       if (!resp.ok) {
-        throw new Error(`Failed to fetch Transak supported fiat currencies: ${resp.status} ${resp.statusText}`)
+        throw new TransakApiError(`Failed to fetch Transak supported fiat currencies: ${resp.status} ${resp.statusText}`)
       }
 
       const body = await resp.json()
       const data = body.response ?? body
 
       if (!Array.isArray(data)) {
-        throw new Error('Failed to fetch Transak supported fiat currencies')
+        throw new TransakApiError('Failed to fetch Transak supported fiat currencies')
       }
 
       this._supportedFiatCurrenciesCache = {
@@ -750,6 +750,7 @@ export default class TransakProtocol extends FiatProtocol {
    * Retrieves a list of supported crypto assets from the provider.
    * @override
    * @returns {Promise<TransakSupportedCryptoAsset[]>} An array of supported crypto assets.
+   * @throws {TransakApiError} If fetching supported crypto assets fails.
    */
   async getSupportedCryptoAssets () {
     const cryptoAssets = await this._fetchAndCacheSupportedCryptoAssets()
@@ -769,6 +770,7 @@ export default class TransakProtocol extends FiatProtocol {
    * Retrieves a list of supported fiat currencies from the provider.
    * @override
    * @returns {Promise<TransakSupportedFiatCurrency[]>} An array of supported fiat currencies.
+   * @throws {TransakApiError} If fetching supported fiat currencies fails.
    */
   async getSupportedFiatCurrencies () {
     const fiatCurrencies = await this._fetchAndCacheSupportedFiatCurrencies()
@@ -785,6 +787,7 @@ export default class TransakProtocol extends FiatProtocol {
    * Retrieves a list of supported countries from the provider.
    * @override
    * @returns {Promise<TransakSupportedCountry[]>} An array of supported countries.
+   * @throws {TransakApiError} If fetching supported countries or supported fiat currencies fails.
    */
   async getSupportedCountries () {
     const url = new URL('/api/v2/countries', this._apiOrigin)
@@ -800,14 +803,14 @@ export default class TransakProtocol extends FiatProtocol {
     ])
 
     if (!resp.ok) {
-      throw new Error(`Failed to fetch supported countries: ${resp.status} ${resp.statusText}`)
+      throw new TransakApiError(`Failed to fetch supported countries: ${resp.status} ${resp.statusText}`)
     }
 
     const body = await resp.json()
     const transakSupportedCountries = body.response ?? body
 
     if (!Array.isArray(transakSupportedCountries)) {
-      throw new Error('Failed to fetch supported countries')
+      throw new TransakApiError('Failed to fetch supported countries')
     }
 
     const fiatCurrencyByCode = new Map(fiatCurrencies.map((currency) => [currency.symbol, currency]))

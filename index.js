@@ -27,7 +27,10 @@
 /** @typedef {import('./src/transak-protocol.js').TransakOrder} TransakOrder */
 /** @typedef {import('./src/transak-protocol.js').TransakQuote} TransakQuote */
 /** @typedef {import('./src/transak-protocol.js').TransakFeeBreakdown} TransakFeeBreakdown */
+/** @typedef {import('./src/transak-protocol.js').TransakCountryPartner} TransakCountryPartner */
 /** @typedef {import('./src/transak-protocol.js').TransakCountryDetail} TransakCountryDetail */
 /** @typedef {import('./src/transak-protocol.js').TransakTransactionDetail} TransakTransactionDetail */
 
 export { default } from './src/transak-protocol.js'
+
+export { TransakApiError } from './src/errors.js'

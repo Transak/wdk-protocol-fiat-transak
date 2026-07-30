@@ -1,4 +1,5 @@
 export { default } from "./src/transak-protocol.js";
+export { TransakApiError } from "./src/errors.js";
 export type TransakProtocolConfig = import("./src/transak-protocol.js").TransakProtocolConfig;
 export type TransakWidgetUiParams = import("./src/transak-protocol.js").TransakWidgetUiParams;
 export type TransakBuyParams = import("./src/transak-protocol.js").TransakBuyParams;
@@ -13,5 +14,6 @@ export type TransakOrderStatus = import("./src/transak-protocol.js").TransakOrde
 export type TransakOrder = import("./src/transak-protocol.js").TransakOrder;
 export type TransakQuote = import("./src/transak-protocol.js").TransakQuote;
 export type TransakFeeBreakdown = import("./src/transak-protocol.js").TransakFeeBreakdown;
+export type TransakCountryPartner = import("./src/transak-protocol.js").TransakCountryPartner;
 export type TransakCountryDetail = import("./src/transak-protocol.js").TransakCountryDetail;
 export type TransakTransactionDetail = import("./src/transak-protocol.js").TransakTransactionDetail;
