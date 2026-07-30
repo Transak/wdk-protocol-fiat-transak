@@ -39,22 +39,16 @@ export default class TransakProtocol extends FiatProtocol {
     private _cacheThreshold;
     /** @private */
     private get _apiOrigin();
-    /**
-     * Resolves the Transak crypto asset and fiat currency details for the given codes.
-     * Codes are matched case-sensitively against Transak's conventions, exactly as
-     * returned by `getSupportedCryptoAssets`/`getSupportedFiatCurrencies` (crypto and
-     * fiat symbols are upper-case, e.g. 'ETH'/'USD'; networks are lower-case, e.g. 'ethereum').
-     * @private
-     * @param {string} cryptoAsset - The crypto asset symbol (e.g. 'USDT').
-     * @param {string} fiatCurrency - The fiat currency code (e.g. 'USD').
-     * @param {string} [network] - An optional network used to disambiguate the crypto asset (e.g. 'ethereum').
-     */
+    /** @private */
     private _getAssetDetails;
     /**
      * Generates a widget URL for a user to purchase a crypto asset with fiat currency.
      * @override
      * @param {TransakBuyOptions} options - The options for the purchase.
      * @returns {Promise<BuyResult>} The URL for the user to complete the purchase.
+     * @throws {ValueError} If `widgetUrl` is not configured, or if both/neither of `cryptoAmount` and `fiatAmount` are provided.
+     * @throws {NoSuchElementError} If `cryptoAsset` or `fiatCurrency` cannot be resolved.
+     * @throws {TransakApiError} If fetching supported crypto assets or fiat currencies fails.
      */
     override buy(options: TransakBuyOptions): Promise<BuyResult>;
     /**
@@ -62,6 +56,9 @@ export default class TransakProtocol extends FiatProtocol {
      * @override
      * @param {TransakQuoteBuyOptions} options - The options for the quote.
      * @returns {Promise<TransakBuyQuote>} A quote for the transaction.
+     * @throws {ValueError} If both/neither of `cryptoAmount` and `fiatAmount` are provided.
+     * @throws {NoSuchElementError} If `cryptoAsset` or `fiatCurrency` cannot be resolved.
+     * @throws {TransakApiError} If fetching the quote, supported crypto assets, or supported fiat currencies fails.
      */
     override quoteBuy(options: TransakQuoteBuyOptions): Promise<TransakBuyQuote>;
     /**
@@ -69,6 +66,9 @@ export default class TransakProtocol extends FiatProtocol {
      * @override
      * @param {TransakQuoteSellOptions} options - The options for the quote.
      * @returns {Promise<TransakSellQuote>} A quote for the transaction.
+     * @throws {ValueError} If `cryptoAmount` is not provided.
+     * @throws {NoSuchElementError} If `cryptoAsset` or `fiatCurrency` cannot be resolved.
+     * @throws {TransakApiError} If fetching the quote, supported crypto assets, or supported fiat currencies fails.
      */
     override quoteSell(options: TransakQuoteSellOptions): Promise<TransakSellQuote>;
     /**
@@ -76,6 +76,9 @@ export default class TransakProtocol extends FiatProtocol {
      * @override
      * @param {TransakSellOptions} options - The options for the sale.
      * @returns {Promise<SellResult>} The URL for the user to complete the sale.
+     * @throws {ValueError} If `widgetUrl` is not configured, or if both/neither of `cryptoAmount` and `fiatAmount` are provided.
+     * @throws {NoSuchElementError} If `cryptoAsset` or `fiatCurrency` cannot be resolved.
+     * @throws {TransakApiError} If fetching supported crypto assets or fiat currencies fails.
      */
     override sell(options: TransakSellOptions): Promise<SellResult>;
     /**
@@ -87,52 +90,36 @@ export default class TransakProtocol extends FiatProtocol {
      * @override
      * @param {string} txId - The unique identifier of the order.
      * @returns {Promise<TransakTransactionDetail>} The transaction details.
+     * @throws {ValueError} If `getOrder` is not configured.
      */
     override getTransactionDetail(txId: string): Promise<TransakTransactionDetail>;
-    /**
-     * Fetches a quote from the Transak pricing API.
-     * @private
-     * @param {Record<string, unknown>} params - The query parameters for the quote.
-     * @returns {Promise<TransakQuote>}
-     */
+    /** @private */
     private _fetchQuote;
-    /**
-     * Normalises a Transak quote into WDK's standardized FiatQuote format.
-     * @private
-     * @param {TransakQuote} quote
-     * @param {TransakCryptoCurrencyDetails} cryptoInfo
-     * @param {TransakFiatCurrencyDetails} fiatInfo
-     * @returns {FiatQuote & { metadata: TransakQuote }}
-     */
+    /** @private */
     private _toFiatQuote;
-    /**
-     * Fetches and caches supported crypto assets from Transak.
-     * @private
-     * @returns {Promise<Array<TransakCryptoCurrencyDetails>>}
-     */
+    /** @private */
     private _fetchAndCacheSupportedCryptoAssets;
-    /**
-     * Fetches and caches supported fiat currencies from Transak.
-     * @private
-     * @returns {Promise<Array<TransakFiatCurrencyDetails>>}
-     */
+    /** @private */
     private _fetchAndCacheSupportedFiatCurrencies;
     /**
      * Retrieves a list of supported crypto assets from the provider.
      * @override
      * @returns {Promise<TransakSupportedCryptoAsset[]>} An array of supported crypto assets.
+     * @throws {TransakApiError} If fetching supported crypto assets fails.
      */
     override getSupportedCryptoAssets(): Promise<TransakSupportedCryptoAsset[]>;
     /**
      * Retrieves a list of supported fiat currencies from the provider.
      * @override
      * @returns {Promise<TransakSupportedFiatCurrency[]>} An array of supported fiat currencies.
+     * @throws {TransakApiError} If fetching supported fiat currencies fails.
      */
     override getSupportedFiatCurrencies(): Promise<TransakSupportedFiatCurrency[]>;
     /**
      * Retrieves a list of supported countries from the provider.
      * @override
      * @returns {Promise<TransakSupportedCountry[]>} An array of supported countries.
+     * @throws {TransakApiError} If fetching supported countries or supported fiat currencies fails.
      */
     override getSupportedCountries(): Promise<TransakSupportedCountry[]>;
 }
@@ -152,7 +139,7 @@ export type SupportedFiatCurrency = import("@tetherto/wdk-wallet/protocols").Sup
 export type SupportedCryptoAsset = import("@tetherto/wdk-wallet/protocols").SupportedCryptoAsset;
 /**
  * Widget UI parameters shared by the buy and sell flows.
- * See https://docs.transak.com/customization/query-parameters for the full list.
+ * @see https://docs.transak.com/customization/query-parameters
  */
 export type TransakWidgetUiParams = {
     /**
@@ -310,6 +297,9 @@ export type TransakQuoteSellParams = {
      */
     network?: string;
 };
+/**
+ * The network a Transak crypto asset lives on.
+ */
 export type TransakNetworkDetails = {
     /**
      * - The network's Transak identifier (e.g. 'ethereum', 'tron').
@@ -322,14 +312,14 @@ export type TransakNetworkDetails = {
     /**
      * - Fiat/payment-method combinations not supported on this network.
      */
-    fiatCurrenciesNotSupported?: Array<{
+    fiatCurrenciesNotSupported?: {
         fiatCurrency: string;
         paymentMethod: string;
-    }>;
+    }[];
 };
 /**
  * A crypto currency as returned by Transak's Get Crypto Currencies API.
- * See https://docs.transak.com/api/public/get-crypto-currencies.
+ * @see https://docs.transak.com/api/public/get-crypto-currencies
  */
 export type TransakCryptoCurrencyDetails = {
     /**
@@ -399,7 +389,7 @@ export type TransakCryptoCurrencyDetails = {
     /**
      * - Country codes where this asset is not supported.
      */
-    kycCountriesNotSupported?: Array<string>;
+    kycCountriesNotSupported?: string[];
     /**
      * - Icon URLs for the asset.
      */
@@ -409,6 +399,9 @@ export type TransakCryptoCurrencyDetails = {
         thumb?: string;
     };
 };
+/**
+ * A payment/payout option available for a Transak fiat currency.
+ */
 export type TransakPaymentOption = {
     /**
      * - The payment option's identifier (e.g. 'credit_debit_card').
@@ -437,9 +430,9 @@ export type TransakPaymentOption = {
 };
 /**
  * A fiat currency as returned by Transak's Get Fiat Currencies API.
- * See https://docs.transak.com/api/public/get-fiat-currencies.
  * Note: the fiat schema has no `decimals` field — `roundOff` is the number of
  * decimal places for the currency's smallest unit.
+ * @see https://docs.transak.com/api/public/get-fiat-currencies
  */
 export type TransakFiatCurrencyDetails = {
     /**
@@ -469,7 +462,7 @@ export type TransakFiatCurrencyDetails = {
     /**
      * - ISO 3166-1 alpha-2 country codes that support this currency.
      */
-    supportingCountries?: Array<string>;
+    supportingCountries?: string[];
     /**
      * - The country/region code used for the currency's logo.
      */
@@ -489,8 +482,28 @@ export type TransakFiatCurrencyDetails = {
     /**
      * - The payment options available for this currency.
      */
-    paymentOptions?: Array<TransakPaymentOption>;
+    paymentOptions?: TransakPaymentOption[];
 };
+/**
+ * A payment partner available in a Transak-supported country.
+ */
+export type TransakCountryPartner = {
+    /**
+     * - The fiat currency code the partner supports.
+     */
+    currencyCode: string;
+    /**
+     * - Whether the partner supports card payments.
+     */
+    isCardPayment: boolean;
+    /**
+     * - The partner's identifier (e.g. 'transak').
+     */
+    name: string;
+};
+/**
+ * A country as returned by Transak's Get Countries API.
+ */
 export type TransakCountryDetail = {
     /**
      * - The country's ISO 3166-1 alpha-2 code.
@@ -519,16 +532,19 @@ export type TransakCountryDetail = {
     /**
      * - A list of supported identity documents for the country.
      */
-    supportedDocuments?: Array<string>;
+    supportedDocuments?: string[];
     /**
      * - The payment partners available in the country.
      */
-    partners?: Array<object>;
+    partners?: TransakCountryPartner[];
 };
 /**
  * Type definition for the status of a Transak order.
  */
 export type TransakOrderStatus = "AWAITING_PAYMENT_FROM_USER" | "PAYMENT_DONE_MARKED_BY_USER" | "PROCESSING" | "PENDING_DELIVERY_FROM_TRANSAK" | "ON_HOLD_PENDING_DELIVERY_FROM_TRANSAK" | "COMPLETED" | "CANCELLED" | "FAILED" | "REFUNDED" | "EXPIRED";
+/**
+ * A single line item in a Transak quote's fee breakdown.
+ */
 export type TransakFeeBreakdown = {
     /**
      * - The human readable name of the fee component.
@@ -545,8 +561,11 @@ export type TransakFeeBreakdown = {
     /**
      * - The identifiers of the sub-components rolled up into this fee.
      */
-    ids?: Array<string>;
+    ids?: string[];
 };
+/**
+ * A quote for a Transak buy or sell, as returned by the pricing API.
+ */
 export type TransakQuote = {
     /**
      * - Unique identifier for the quote.
@@ -603,7 +622,7 @@ export type TransakQuote = {
     /**
      * - A breakdown of the individual fee components.
      */
-    feeBreakdown?: Array<TransakFeeBreakdown>;
+    feeBreakdown?: TransakFeeBreakdown[];
     /**
      * - A nonce associated with the quote.
      */
@@ -615,8 +634,11 @@ export type TransakQuote = {
     /**
      * - Additional notes returned with the quote.
      */
-    notes?: Array<object>;
+    notes?: string[];
 };
+/**
+ * A Transak order, as returned by the Get Order API.
+ */
 export type TransakOrder = {
     /**
      * - Unique identifier for the order.
@@ -740,6 +762,9 @@ export type TransakWidgetParams = {
      */
     walletAddress?: string;
 };
+/**
+ * Configuration for {@link TransakProtocol}.
+ */
 export type TransakProtocolConfig = {
     /**
      * - Your Transak partner API key.
@@ -754,7 +779,7 @@ export type TransakProtocolConfig = {
      */
     getOrder?: (txId: string) => Promise<TransakOrder>;
     /**
-     * - The duration in milliseconds to cache supported currencies.
+     * - The duration in milliseconds to cache supported currencies (default: 600,000 — 10 minutes).
      */
     cacheTime?: number;
     /**
