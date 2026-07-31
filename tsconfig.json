@@ -1,0 +1,18 @@
+{
+  "include": [
+    "index.js",
+    "src/**/*.js",
+  ],
+  "compilerOptions": {
+    "target": "ES2015",
+    "lib": ["ES2017", "ES2020.BigInt"],
+    "module": "NodeNext",
+    "moduleResolution": "nodenext",
+    "allowJs": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "skipLibCheck": true,
+    "stripInternal": true,
+    "outDir": "./types"
+  }
+}
