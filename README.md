@@ -309,6 +309,17 @@ async function getOrder (txId, userIp) {
 
 Expose this behind an endpoint that responds with `{ order }`; the browser-side [`getOrder` callback](#initialize-transakprotocol) calls that endpoint — the same pattern as `widgetUrl`.
 
+### Order Status
+
+`getTransactionDetail` normalises the Transak order `status` to WDK's `status` (`'in_progress' | 'failed' | 'completed'`):
+
+| Transak status | WDK status |
+|-----------------|------------|
+| `COMPLETED` | `completed` |
+| `FAILED`, `CANCELLED`, `REFUNDED`, `EXPIRED` | `failed` |
+| `AWAITING_PAYMENT_FROM_USER`, `PAYMENT_DONE_MARKED_BY_USER`, `PROCESSING`, `PENDING_DELIVERY_FROM_TRANSAK`, `ON_HOLD_PENDING_DELIVERY_FROM_TRANSAK` | `in_progress` |
+| Any other/unrecognised code | `in_progress` (default) |
+
 ---
 
 ## Error handling
