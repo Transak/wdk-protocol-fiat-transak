@@ -17,6 +17,10 @@ Use the guides below for setup, trading, and transaction follow-up.
 | [API Reference](#api-reference) | Constructor, methods, and types for `TransakProtocol`. |
 | [Node.js Quickstart](https://docs.wallet.tether.io) | Get started with WDK in a Node.js environment. |
 
+## Compatibility
+
+`TransakProtocol` implements the `IFiatProtocol` interface from `@tetherto/wdk-wallet/protocols`, tested against `@tetherto/wdk-wallet` `^1.0.0-beta.15`.
+
 ## About WDK
 
 Part of WDK (Wallet Development Kit) — tools for building safe, non‑custodial wallets. Read more at https://docs.wallet.tether.io.
