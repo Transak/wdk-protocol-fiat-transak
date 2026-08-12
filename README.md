@@ -225,6 +225,8 @@ Returns `Promise<TransakBuyQuote>` / `Promise<TransakSellQuote>`:
 }
 ```
 
+`fee` is Transak's total fee for the quote, converted to the fiat currency's smallest units (e.g. cents for EUR).
+
 ### `getTransactionDetail(txId)`
 
 - `txId` (string): The Transak order ID.
