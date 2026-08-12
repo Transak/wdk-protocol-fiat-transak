@@ -1,4 +1,4 @@
-export { default } from "./src/transak-protocol.js";
+export { default, TransakProtocol, IFiatProtocol } from "./src/transak-protocol.js";
 export { TransakApiError } from "./src/errors.js";
 export type TransakProtocolConfig = import("./src/transak-protocol.js").TransakProtocolConfig;
 export type TransakWidgetUiParams = import("./src/transak-protocol.js").TransakWidgetUiParams;

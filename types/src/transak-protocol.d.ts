@@ -787,4 +787,5 @@ export type TransakProtocolConfig = {
      */
     environment?: "PRODUCTION" | "STAGING";
 };
-import { FiatProtocol } from '@tetherto/wdk-wallet/protocols';
+import { FiatProtocol, IFiatProtocol } from '@tetherto/wdk-wallet/protocols';
+export { TransakProtocol, IFiatProtocol };
