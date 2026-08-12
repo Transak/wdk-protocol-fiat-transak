@@ -365,6 +365,14 @@ Apache License 2.0 — see the LICENSE file for details.
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for a history of changes to this package.
+
+## Security
+
+Found a vulnerability? Please follow the responsible disclosure process in [SECURITY.md](./SECURITY.md).
+
 ## Support
 
 For support, please open an issue on the GitHub repository.
