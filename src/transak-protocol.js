@@ -14,7 +14,7 @@
 
 'use strict'
 
-import { FiatProtocol } from '@tetherto/wdk-wallet/protocols'
+import { FiatProtocol, IFiatProtocol } from '@tetherto/wdk-wallet/protocols'
 import { ValueError, NoSuchElementError } from '@tetherto/wdk-wallet'
 import BigNumber from 'bignumber.js'
 
@@ -359,7 +359,7 @@ const TRANSAK_ORIGINS = {
 }
 const TRANSAK_CACHE_TIME = 10 * 60 * 1000
 
-export default class TransakProtocol extends FiatProtocol {
+class TransakProtocol extends FiatProtocol {
   /**
    * Creates a new interface to interact with the Transak protocol without binding it to a wallet account.
    *
@@ -828,3 +828,7 @@ export default class TransakProtocol extends FiatProtocol {
     })
   }
 }
+
+export default TransakProtocol
+
+export { TransakProtocol, IFiatProtocol }

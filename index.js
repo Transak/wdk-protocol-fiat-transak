@@ -31,6 +31,6 @@
 /** @typedef {import('./src/transak-protocol.js').TransakCountryDetail} TransakCountryDetail */
 /** @typedef {import('./src/transak-protocol.js').TransakTransactionDetail} TransakTransactionDetail */
 
-export { default } from './src/transak-protocol.js'
+export { default, TransakProtocol, IFiatProtocol } from './src/transak-protocol.js'
 
 export { TransakApiError } from './src/errors.js'
