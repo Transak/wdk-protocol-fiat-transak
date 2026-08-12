@@ -17,6 +17,10 @@ Use the guides below for setup, trading, and transaction follow-up.
 | [API Reference](#api-reference) | Constructor, methods, and types for `TransakProtocol`. |
 | [Node.js Quickstart](https://docs.wallet.tether.io) | Get started with WDK in a Node.js environment. |
 
+## Compatibility
+
+`TransakProtocol` implements the `IFiatProtocol` interface from `@tetherto/wdk-wallet/protocols`, tested against `@tetherto/wdk-wallet` `^1.0.0-beta.15`.
+
 ## About WDK
 
 Part of WDK (Wallet Development Kit) — tools for building safe, non‑custodial wallets. Read more at https://docs.wallet.tether.io.
@@ -221,6 +225,8 @@ Returns `Promise<TransakBuyQuote>` / `Promise<TransakSellQuote>`:
 }
 ```
 
+`fee` is Transak's total fee for the quote, converted to the fiat currency's smallest units (e.g. cents for EUR).
+
 ### `getTransactionDetail(txId)`
 
 - `txId` (string): The Transak order ID.
@@ -305,6 +311,27 @@ async function getOrder (txId, userIp) {
 
 Expose this behind an endpoint that responds with `{ order }`; the browser-side [`getOrder` callback](#initialize-transakprotocol) calls that endpoint — the same pattern as `widgetUrl`.
 
+### Order Status
+
+`getTransactionDetail` normalises the Transak order `status` to WDK's `status` (`'in_progress' | 'failed' | 'completed'`):
+
+| Transak status | WDK status |
+|-----------------|------------|
+| `COMPLETED` | `completed` |
+| `FAILED`, `CANCELLED`, `REFUNDED`, `EXPIRED` | `failed` |
+| `AWAITING_PAYMENT_FROM_USER`, `PAYMENT_DONE_MARKED_BY_USER`, `PROCESSING`, `PENDING_DELIVERY_FROM_TRANSAK`, `ON_HOLD_PENDING_DELIVERY_FROM_TRANSAK` | `in_progress` |
+| Any other/unrecognised code | `in_progress` (default) |
+
+---
+
+## Error handling
+
+| Error | Thrown when | Thrown by |
+|-------|-------------|-----------|
+| `TransakApiError` | A request to a Transak API endpoint fails (non-2xx response) or returns an unexpected/malformed body. | `buy`, `sell`, `quoteBuy`, `quoteSell`, `getSupportedCryptoAssets`, `getSupportedFiatCurrencies`, `getSupportedCountries` |
+| `ValueError` | A required callback (`widgetUrl` or `getOrder`) isn't configured, or `cryptoAmount`/`fiatAmount` are both or neither provided (`quoteSell` requires `cryptoAmount`). | `buy`, `sell`, `quoteBuy`, `quoteSell`, `getTransactionDetail` |
+| `NoSuchElementError` | `cryptoAsset`/`fiatCurrency` (and `config.network`, if given) don't match any entry in the supported crypto/fiat lists. | `buy`, `sell`, `quoteBuy`, `quoteSell` |
+
 ---
 
 ## Development
@@ -337,6 +364,14 @@ Apache License 2.0 — see the LICENSE file for details.
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md) for a history of changes to this package.
+
+## Security
+
+Found a vulnerability? Please follow the responsible disclosure process in [SECURITY.md](./SECURITY.md).
 
 ## Support
 
