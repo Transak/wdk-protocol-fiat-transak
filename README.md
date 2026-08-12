@@ -311,6 +311,16 @@ Expose this behind an endpoint that responds with `{ order }`; the browser-side 
 
 ---
 
+## Error handling
+
+| Error | Thrown when | Thrown by |
+|-------|-------------|-----------|
+| `TransakApiError` | A request to a Transak API endpoint fails (non-2xx response) or returns an unexpected/malformed body. | `buy`, `sell`, `quoteBuy`, `quoteSell`, `getSupportedCryptoAssets`, `getSupportedFiatCurrencies`, `getSupportedCountries` |
+| `ValueError` | A required callback (`widgetUrl` or `getOrder`) isn't configured, or `cryptoAmount`/`fiatAmount` are both or neither provided (`quoteSell` requires `cryptoAmount`). | `buy`, `sell`, `quoteBuy`, `quoteSell`, `getTransactionDetail` |
+| `NoSuchElementError` | `cryptoAsset`/`fiatCurrency` (and `config.network`, if given) don't match any entry in the supported crypto/fiat lists. | `buy`, `sell`, `quoteBuy`, `quoteSell` |
+
+---
+
 ## Development
 
 ```bash
