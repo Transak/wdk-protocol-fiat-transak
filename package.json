@@ -17,6 +17,12 @@
   "type": "module",
   "main": "index.js",
   "types": "./types",
+  "files": [
+    "index.js",
+    "bare.js",
+    "src",
+    "types"
+  ],
   "scripts": {
     "build:types": "tsc",
     "lint": "standard",
