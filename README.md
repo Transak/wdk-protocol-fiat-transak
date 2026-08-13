@@ -125,6 +125,7 @@ await transak.buy({
 - **Conventions** — `cryptoAsset`/`fiatCurrency` are upper-case (`ETH`, `EUR`), `network`/`paymentMethod` lower-case (`ethereum`, `credit_debit_card`). They're matched exactly, with no normalisation (a wrong case throws `Cannot find info for cryptoAsset and fiatCurrency`). Fetch the exact values with the [supported-currencies methods](#supported-currencies-and-countries).
 - **Multi-network assets** — a symbol like `USDT` exists on several chains; `config.network` picks one (first match if omitted).
 - **Wallet address** — resolved from `recipient`, else the bound account's address, else the Transak widget prompts the user. `quote*`, `getTransactionDetail`, and `getSupported*` never use the account.
+- **`refundAddress`** — not supported as a request parameter. Transak sends refunds back to the source wallet address automatically, or the address can be provided directly in the widget.
 
 ---
 
