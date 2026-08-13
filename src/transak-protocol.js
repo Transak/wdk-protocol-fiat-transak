@@ -255,11 +255,21 @@ import { TransakApiError } from './errors.js'
 
 /** @typedef {FiatQuote & { metadata: TransakQuote }} TransakBuyQuote */
 
-/** @typedef {Omit<SellCommonOptions, 'refundAddress'> & SellExactCryptoAmountOptions & { config?: TransakQuoteSellParams }} TransakQuoteSellOptions */
+/**
+ * `refundAddress` is intentionally omitted from {@link SellCommonOptions}. Transak
+ * does not accept it as a request parameter. A refund is instead sent back to the
+ * source wallet address automatically, or address can be directly provided in the Transak widget.
+ * @typedef {Omit<SellCommonOptions, 'refundAddress'> & SellExactCryptoAmountOptions & { config?: TransakQuoteSellParams }} TransakQuoteSellOptions
+ */
 
 /** @typedef {FiatQuote & { metadata: TransakQuote }} TransakSellQuote */
 
-/** @typedef {Omit<SellOptions, 'refundAddress'> & { config?: TransakSellParams }} TransakSellOptions */
+/**
+ * `refundAddress` is intentionally omitted from {@link SellOptions}. Transak
+ * does not accept it as a request parameter. A refund is instead sent back to the
+ * source wallet address automatically, or address can be directly provided in the Transak widget.
+ * @typedef {Omit<SellOptions, 'refundAddress'> & { config?: TransakSellParams }} TransakSellOptions
+ */
 
 /**
  * The assembled Transak widget parameters passed to the `widgetUrl` callback — send
