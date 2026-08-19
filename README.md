@@ -1,4 +1,4 @@
-# @tetherto/wdk-protocol-fiat-transak
+# @transak/wdk-protocol-fiat-transak
 
 <a href="https://docs.wdk.tether.io"><img src="https://raw.githubusercontent.com/tetherto/wdk-docs/refs/heads/main/public/assets/branding/wdk-banner-dark-circuit.png" alt="Built with WDK" width="140"></a>
 
@@ -32,7 +32,7 @@ Part of WDK (Wallet Development Kit) — tools for building safe, non‑custodia
 ### Installation
 
 ```bash
-npm install @tetherto/wdk-protocol-fiat-transak
+npm install @transak/wdk-protocol-fiat-transak
 ```
 
 ### Initialize TransakProtocol
@@ -40,7 +40,7 @@ npm install @tetherto/wdk-protocol-fiat-transak
 Create an instance with an optional wallet account and a config object:
 
 ```javascript
-import TransakProtocol from '@tetherto/wdk-protocol-fiat-transak'
+import TransakProtocol from '@transak/wdk-protocol-fiat-transak'
 
 const transak = new TransakProtocol(account, {
   apiKey: 'YOUR_TRANSAK_PARTNER_KEY',
