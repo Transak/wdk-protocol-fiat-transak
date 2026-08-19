@@ -1,5 +1,5 @@
 {
-  "name": "@tetherto/wdk-protocol-fiat-transak",
+  "name": "@transak/wdk-protocol-fiat-transak",
   "version": "1.0.0",
   "description": "A simple package that lets @tetherto/wdk-wallet accounts interact with the Transak protocol",
   "keywords": [
@@ -13,7 +13,7 @@
     "url": "git+https://github.com/Transak/wdk-protocol-fiat-transak.git"
   },
   "license": "Apache-2.0",
-  "author": "Tether",
+  "author": "Transak",
   "type": "module",
   "main": "index.js",
   "types": "./types",

@@ -12,7 +12,7 @@ We'll acknowledge your report as soon as possible and work with you to understan
 
 ## Scope
 
-This policy covers the `@tetherto/wdk-protocol-fiat-transak` package itself (widget URL construction, quoting, and order-status handling). Vulnerabilities in:
+This policy covers the `@transak/wdk-protocol-fiat-transak` package itself (widget URL construction, quoting, and order-status handling). Vulnerabilities in:
 
 - the `@tetherto/wdk-wallet` SDK or other WDK packages should be reported to the [wdk](https://github.com/tetherto/wdk) maintainers,
 
