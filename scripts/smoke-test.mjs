@@ -42,7 +42,7 @@ async function accessToken () {
 
   const res = await fetch(`${API}/partners/api/v2/refresh-token`, {
     method: 'POST',
-    headers: { 'api-secret': API_SECRET, 'content-type': 'application/json', 'x-user-ip': USER_IP },
+    headers: { 'x-api-key': API_KEY, 'api-secret': API_SECRET, 'content-type': 'application/json' },
     body: JSON.stringify({ apiKey: API_KEY })
   })
   if (!res.ok) throw new Error(`refresh-token ${res.status}: ${await res.text()}`)
@@ -66,7 +66,7 @@ const widgetUrl = async (widgetParams) => {
 const getOrder = async (txId) => {
   const token = await accessToken()
   const res = await fetch(`${API}/partners/api/v2/order/${txId}`, {
-    headers: { 'x-api-key': API_KEY, 'access-token': token, 'x-user-ip': USER_IP }
+    headers: { 'x-api-key': API_KEY, 'access-token': token }
   })
   if (!res.ok) throw new Error(`order/${txId} ${res.status}: ${await res.text()}`)
   const { data } = await res.json()
