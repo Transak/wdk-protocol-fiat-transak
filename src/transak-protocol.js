@@ -48,7 +48,7 @@ import { TransakApiError } from './errors.js'
  * @property {'DARK' | 'LIGHT'} [colorMode] - The default appearance for the widget.
  * @property {string} [redirectURL] - A URL to redirect the customer to after the flow is complete. Must use 'https://'.
  * @property {string} [referrerDomain] - Your domain URL (web) or application package name (mobile). Recommended for allow-listing.
- * @property {string} [hideMenu] - If 'true', hides the widget navigation menu.
+ * @property {boolean} [hideMenu] - If 'true', hides the widget navigation menu.
  */
 
 /**
