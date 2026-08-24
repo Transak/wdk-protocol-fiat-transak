@@ -54,15 +54,18 @@ import { TransakApiError } from './errors.js'
 /**
  * Widget UI parameters specific to the buy (on-ramp) flow.
  * @typedef {Object} TransakWidgetUiBuyParams
- * @property {string} [defaultCryptoCurrency] - The crypto currency code you would prefer the customer to purchase. The customer can still select another currency.
- * @property {string} [walletAddress] - The cryptocurrency wallet address the purchased funds will be sent to. If you pass a valid wallet address the customer won't be prompted to enter one.
- * @property {string} [walletAddressesData] - A JSON string representing the wallet addresses you want to use for multiple networks/coins.
+ * @property {string} [walletAddress] - The destination wallet address. If you pass a valid wallet address the customer won't be prompted to enter one.
+ * @property {Object} [walletAddressesData] - Wallet addresses keyed by network/coin. Skipped if `walletAddress` is passed.
  * @property {boolean} [disableWalletAddressForm] - If 'true', the customer cannot edit the destination wallet address.
+ * @property {string} [exchangeScreenTitle] - A custom title for the exchange screen.
  * @property {boolean} [hideExchangeScreen] - If 'true', skips the exchange screen and takes the customer straight to the payment screen.
  * @property {boolean} [isFeeCalculationHidden] - If 'true', hides the fee breakdown from the customer.
  * @property {string} [defaultPaymentMethod] - Pre-select the payment method you want the customer to use.
  * @property {string} [paymentMethod] - Restrict the customer to a single payment method.
+ * @property {string[]} [disablePaymentMethods] - Payment methods to hide from the customer.
  * @property {string} [email] - The customer's email address. If you pass a valid email address, the customer won't be prompted to enter one.
+ * @property {Object} [userData] - Prefills the customer's name, address, and date of birth to streamline or skip the KYC form.
+ * @property {boolean} [isAutoFillUserData] - If 'true', autofills the `email` field without skipping the KYC screen. Ignored if `email`/`userData` aren't set.
  * @property {string} [partnerOrderId] - An identifier you would like to associate with the order. It is returned in webhooks and order data.
  * @property {string} [partnerCustomerId] - An identifier you would like to associate with the customer. It is returned in webhooks and order data.
  * @property {string} [network] - Restrict the customer to a single network for the selected crypto currency.
@@ -73,15 +76,16 @@ import { TransakApiError } from './errors.js'
 /**
  * Widget UI parameters specific to the sell (off-ramp) flow.
  * @typedef {Object} TransakWidgetUiSellParams
- * @property {string} [defaultCryptoCurrency] - The crypto currency code you would prefer the customer to sell. The customer can still select another currency.
- * @property {string} [walletAddress] - The wallet address the customer will send the crypto from.
- * @property {string} [walletAddressesData] - A JSON string representing the wallet addresses you want to use for multiple networks/coins.
- * @property {boolean} [disableWalletAddressForm] - If 'true', the customer cannot edit the source wallet address.
+ * @property {boolean} [walletRedirection] - Enables wallet redirection for the off-ramp (sell) flow.
+ * @property {string} [exchangeScreenTitle] - A custom title for the exchange screen.
  * @property {boolean} [hideExchangeScreen] - If 'true', skips the exchange screen and takes the customer straight to the payout screen.
  * @property {boolean} [isFeeCalculationHidden] - If 'true', hides the fee breakdown from the customer.
  * @property {string} [defaultPaymentMethod] - Pre-select the payout method you want the customer to use.
  * @property {string} [paymentMethod] - Restrict the customer to a single payout method.
+ * @property {string[]} [disablePaymentMethods] - Payout methods to hide from the customer.
  * @property {string} [email] - The customer's email address. If you pass a valid email address, the customer won't be prompted to enter one.
+ * @property {Object} [userData] - Prefills the customer's name, address, and date of birth to streamline or skip the KYC form.
+ * @property {boolean} [isAutoFillUserData] - If 'true', autofills the `email` field without skipping the KYC screen. Ignored if `email`/`userData` aren't set.
  * @property {string} [partnerOrderId] - An identifier you would like to associate with the order. It is returned in webhooks and order data.
  * @property {string} [partnerCustomerId] - An identifier you would like to associate with the customer. It is returned in webhooks and order data.
  * @property {string} [network] - Restrict the customer to a single network for the selected crypto currency.
