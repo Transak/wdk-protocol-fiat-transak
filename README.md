@@ -260,7 +260,7 @@ async function createWidgetUrl (widgetParams, userIp) {
   // 1. Get a partner access token (cache it until it expires).
   const tokenRes = await fetch('https://api.transak.com/partners/api/v2/refresh-token', {
     method: 'POST',
-    headers: { 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json', 'x-user-ip': userIp },
+    headers: { 'x-api-key': process.env.TRANSAK_API_KEY, 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json' },
     body: JSON.stringify({ apiKey: process.env.TRANSAK_API_KEY })
   })
   const { data: { accessToken } } = await tokenRes.json()
@@ -278,7 +278,7 @@ async function createWidgetUrl (widgetParams, userIp) {
 
 Notes:
 - Keep the API secret on the backend, never in client code.
-- **`x-user-ip` is mandatory** on Transak's authenticated APIs — send the end user's originating IP (a valid IPv4/IPv6), taken from the incoming request. See [Transak's security changes](https://docs.transak.com/guides/mandatory-security-changes#user-ip-header-in-apis).
+- **`x-user-ip` is mandatory** on Transak's Create Session API (used to mint the widget URL) — send the end user's originating IP (a valid IPv4/IPv6), taken from the incoming request. See [Transak's security changes](https://docs.transak.com/guides/mandatory-security-changes#user-ip-header-in-apis).
 - The returned widget URL is valid for **5 minutes** and each session can be used **once** — create a fresh one per flow.
 - For staging, use `https://api-stg.transak.com` and `https://api-gateway-stg.transak.com`.
 - For the full list of widget parameters, see the [Transak query parameters docs](https://docs.transak.com/customization/query-parameters).
@@ -291,19 +291,18 @@ Notes:
 
 ```javascript
 // On your backend — never ship the API secret to the client.
-// `userIp` is the end user's IP (Transak requires it as the `x-user-ip` header).
-async function getOrder (txId, userIp) {
+async function getOrder (txId) {
   // 1. Get a partner access token (reuse the same one as the widget URL flow; cache until it expires).
   const tokenRes = await fetch('https://api.transak.com/partners/api/v2/refresh-token', {
     method: 'POST',
-    headers: { 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json', 'x-user-ip': userIp },
+    headers: { 'x-api-key': process.env.TRANSAK_API_KEY, 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json' },
     body: JSON.stringify({ apiKey: process.env.TRANSAK_API_KEY })
   })
   const { data: { accessToken } } = await tokenRes.json()
 
   // 2. Fetch the order and return it (the module maps its status).
   const orderRes = await fetch(`https://api.transak.com/partners/api/v2/order/${txId}`, {
-    headers: { 'x-api-key': process.env.TRANSAK_API_KEY, 'access-token': accessToken, 'x-user-ip': userIp }
+    headers: { 'x-api-key': process.env.TRANSAK_API_KEY, 'access-token': accessToken }
   })
   const { data } = await orderRes.json() // Get Order responses are wrapped in { data }
   return data
@@ -356,7 +355,7 @@ cp .env.example .env   # set TRANSAK_API_KEY, TRANSAK_API_SECRET,
 npm run smoke          # runs scripts/smoke-test.mjs against STAGING
 ```
 
-It fetches the supported lists, requests buy/sell quotes, and generates buy/sell widget URLs (implementing the `widgetUrl`/`getOrder` backends inline, with the required `referrerDomain` and `x-user-ip`) — printing each method's return. Set `TRANSAK_ORDER_ID` in `.env` to also exercise `getTransactionDetail`.
+It fetches the supported lists, requests buy/sell quotes, and generates buy/sell widget URLs (implementing the `widgetUrl`/`getOrder` backends inline, with the required `referrerDomain` and `x-user-ip` on the widget session call) — printing each method's return. Set `TRANSAK_ORDER_ID` in `.env` to also exercise `getTransactionDetail`.
 
 ## License
 

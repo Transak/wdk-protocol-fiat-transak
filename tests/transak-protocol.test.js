@@ -631,37 +631,25 @@ describe('wdk-protocol-fiat-transak', () => {
   })
 
   describe('getSupportedCountries', () => {
-    // isBuyAllowed/isSellAllowed are derived from the matching fiat currency's
-    // isAllowed/isPayOutAllowed flags (looked up via currencyCode), not the
-    // country's own isAllowed flag.
-    const DUMMY_COUNTRY_FIAT = [
-      { symbol: 'USD', name: 'US Dollar', isAllowed: true, isPayOutAllowed: true },
-      { symbol: 'EUR', name: 'The Euro', isAllowed: true } // isPayOutAllowed omitted -> sell not allowed
-    ]
-
+    // isBuyAllowed/isSellAllowed both mirror the country's own isAllowed flag.
     const DUMMY_COUNTRIES = [
       { alpha2: 'US', alpha3: 'USA', name: 'United States', currencyCode: 'USD', isAllowed: true },
-      { alpha2: 'FR', alpha3: 'FRA', name: 'France', currencyCode: 'EUR', isAllowed: true },
-      { alpha3: 'CAN', name: 'Canada', currencyCode: 'CAD', isAllowed: false } // No alpha2 to test fallback; no matching fiat currency
+      { alpha3: 'CAN', name: 'Canada', currencyCode: 'CAD', isAllowed: false } // No alpha2 to test fallback
     ]
 
     test('should successfully return supported countries', async () => {
-      global.fetch = createFetchMock({ countries: DUMMY_COUNTRIES, fiat: DUMMY_COUNTRY_FIAT })
+      global.fetch = createFetchMock({ countries: DUMMY_COUNTRIES })
 
       const countries = await transak.getSupportedCountries()
 
       expect(countries).toEqual([
         { code: 'US', isBuyAllowed: true, isSellAllowed: true, name: 'United States', metadata: DUMMY_COUNTRIES[0] },
-        { code: 'FR', isBuyAllowed: true, isSellAllowed: false, name: 'France', metadata: DUMMY_COUNTRIES[1] },
-        { code: 'CAN', isBuyAllowed: false, isSellAllowed: false, name: 'Canada', metadata: DUMMY_COUNTRIES[2] }
+        { code: 'CAN', isBuyAllowed: false, isSellAllowed: false, name: 'Canada', metadata: DUMMY_COUNTRIES[1] }
       ])
     })
 
     test('should throw when fetch fails', async () => {
-      global.fetch = jest.fn().mockImplementation((url) => {
-        if (url.includes('fiat-currencies')) return Promise.resolve({ ok: true, json: jest.fn().mockResolvedValue({ response: DUMMY_FIAT }) })
-        return Promise.resolve({ ok: false, status: 500, statusText: 'Error' })
-      })
+      global.fetch = jest.fn().mockImplementation(() => Promise.resolve({ ok: false, status: 500, statusText: 'Error' }))
 
       const error = await transak.getSupportedCountries().catch((e) => e)
 
@@ -670,10 +658,7 @@ describe('wdk-protocol-fiat-transak', () => {
     })
 
     test('should throw when data is invalid', async () => {
-      global.fetch = jest.fn().mockImplementation((url) => {
-        if (url.includes('fiat-currencies')) return Promise.resolve({ ok: true, json: jest.fn().mockResolvedValue({ response: DUMMY_FIAT }) })
-        return Promise.resolve({ ok: true, json: jest.fn().mockResolvedValue({ response: 'not an array' }) })
-      })
+      global.fetch = jest.fn().mockImplementation(() => Promise.resolve({ ok: true, json: jest.fn().mockResolvedValue({ response: 'not an array' }) }))
 
       const error = await transak.getSupportedCountries().catch((e) => e)
 
