@@ -797,20 +797,17 @@ class TransakProtocol extends FiatProtocol {
    * Retrieves a list of supported countries from the provider.
    * @override
    * @returns {Promise<TransakSupportedCountry[]>} An array of supported countries.
-   * @throws {TransakApiError} If fetching supported countries or supported fiat currencies fails.
+   * @throws {TransakApiError} If fetching supported countries fails.
    */
   async getSupportedCountries () {
     const url = new URL('/api/v2/countries', this._apiOrigin)
 
-    const [resp, fiatCurrencies] = await Promise.all([
-      fetch(url.toString(), {
-        headers: {
-          accept: 'application/json',
-          'x-api-key': this._apiKey
-        }
-      }),
-      this._fetchAndCacheSupportedFiatCurrencies()
-    ])
+    const resp = await fetch(url.toString(), {
+      headers: {
+        accept: 'application/json',
+        'x-api-key': this._apiKey
+      }
+    })
 
     if (!resp.ok) {
       throw new TransakApiError(`Failed to fetch supported countries: ${resp.status} ${resp.statusText}`)
@@ -823,19 +820,13 @@ class TransakProtocol extends FiatProtocol {
       throw new TransakApiError('Failed to fetch supported countries')
     }
 
-    const fiatCurrencyByCode = new Map(fiatCurrencies.map((currency) => [currency.symbol, currency]))
-
-    return transakSupportedCountries.map((countryDetail) => {
-      const fiatCurrency = fiatCurrencyByCode.get(countryDetail.currencyCode)
-
-      return {
-        code: countryDetail.alpha2 || countryDetail.alpha3,
-        isBuyAllowed: fiatCurrency?.isAllowed === true,
-        isSellAllowed: fiatCurrency?.isPayOutAllowed === true,
-        name: countryDetail.name,
-        metadata: countryDetail
-      }
-    })
+    return transakSupportedCountries.map((countryDetail) => ({
+      code: countryDetail.alpha2 || countryDetail.alpha3,
+      isBuyAllowed: countryDetail.isAllowed === true,
+      isSellAllowed: countryDetail.isAllowed === true,
+      name: countryDetail.name,
+      metadata: countryDetail
+    }))
   }
 }
 
