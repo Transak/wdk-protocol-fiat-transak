@@ -260,7 +260,7 @@ async function createWidgetUrl (widgetParams, userIp) {
   // 1. Get a partner access token (cache it until it expires).
   const tokenRes = await fetch('https://api.transak.com/partners/api/v2/refresh-token', {
     method: 'POST',
-    headers: { 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json', 'x-user-ip': userIp },
+    headers: { 'x-api-key': process.env.TRANSAK_API_KEY, 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json' },
     body: JSON.stringify({ apiKey: process.env.TRANSAK_API_KEY })
   })
   const { data: { accessToken } } = await tokenRes.json()
@@ -296,7 +296,7 @@ async function getOrder (txId, userIp) {
   // 1. Get a partner access token (reuse the same one as the widget URL flow; cache until it expires).
   const tokenRes = await fetch('https://api.transak.com/partners/api/v2/refresh-token', {
     method: 'POST',
-    headers: { 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json', 'x-user-ip': userIp },
+    headers: { 'x-api-key': process.env.TRANSAK_API_KEY, 'api-secret': process.env.TRANSAK_API_SECRET, 'content-type': 'application/json' },
     body: JSON.stringify({ apiKey: process.env.TRANSAK_API_KEY })
   })
   const { data: { accessToken } } = await tokenRes.json()
