@@ -161,28 +161,28 @@ export type TransakWidgetUiParams = {
     /**
      * - If 'true', hides the widget navigation menu.
      */
-    hideMenu?: string;
+    hideMenu?: boolean;
 };
 /**
  * Widget UI parameters specific to the buy (on-ramp) flow.
  */
 export type TransakWidgetUiBuyParams = {
     /**
-     * - The crypto currency code you would prefer the customer to purchase. The customer can still select another currency.
-     */
-    defaultCryptoCurrency?: string;
-    /**
-     * - The cryptocurrency wallet address the purchased funds will be sent to. If you pass a valid wallet address the customer won't be prompted to enter one.
+     * - The destination wallet address. If you pass a valid wallet address the customer won't be prompted to enter one.
      */
     walletAddress?: string;
     /**
-     * - A JSON string representing the wallet addresses you want to use for multiple networks/coins.
+     * - Wallet addresses keyed by network/coin. Skipped if `walletAddress` is passed.
      */
-    walletAddressesData?: string;
+    walletAddressesData?: any;
     /**
      * - If 'true', the customer cannot edit the destination wallet address.
      */
     disableWalletAddressForm?: boolean;
+    /**
+     * - A custom title for the exchange screen.
+     */
+    exchangeScreenTitle?: string;
     /**
      * - If 'true', skips the exchange screen and takes the customer straight to the payment screen.
      */
@@ -200,9 +200,21 @@ export type TransakWidgetUiBuyParams = {
      */
     paymentMethod?: string;
     /**
+     * - Payment methods to hide from the customer.
+     */
+    disablePaymentMethods?: string[];
+    /**
      * - The customer's email address. If you pass a valid email address, the customer won't be prompted to enter one.
      */
     email?: string;
+    /**
+     * - Prefills the customer's name, address, and date of birth to streamline or skip the KYC form.
+     */
+    userData?: any;
+    /**
+     * - If 'true', autofills the `email` field without skipping the KYC screen. Ignored if `email`/`userData` aren't set.
+     */
+    isAutoFillUserData?: boolean;
     /**
      * - An identifier you would like to associate with the order. It is returned in webhooks and order data.
      */
@@ -222,21 +234,13 @@ export type TransakBuyParams = TransakWidgetUiParams & TransakWidgetUiBuyParams;
  */
 export type TransakWidgetUiSellParams = {
     /**
-     * - The crypto currency code you would prefer the customer to sell. The customer can still select another currency.
+     * - Enables wallet redirection for the off-ramp (sell) flow.
      */
-    defaultCryptoCurrency?: string;
+    walletRedirection?: boolean;
     /**
-     * - The wallet address the customer will send the crypto from.
+     * - A custom title for the exchange screen.
      */
-    walletAddress?: string;
-    /**
-     * - A JSON string representing the wallet addresses you want to use for multiple networks/coins.
-     */
-    walletAddressesData?: string;
-    /**
-     * - If 'true', the customer cannot edit the source wallet address.
-     */
-    disableWalletAddressForm?: boolean;
+    exchangeScreenTitle?: string;
     /**
      * - If 'true', skips the exchange screen and takes the customer straight to the payout screen.
      */
@@ -254,9 +258,21 @@ export type TransakWidgetUiSellParams = {
      */
     paymentMethod?: string;
     /**
+     * - Payout methods to hide from the customer.
+     */
+    disablePaymentMethods?: string[];
+    /**
      * - The customer's email address. If you pass a valid email address, the customer won't be prompted to enter one.
      */
     email?: string;
+    /**
+     * - Prefills the customer's name, address, and date of birth to streamline or skip the KYC form.
+     */
+    userData?: any;
+    /**
+     * - If 'true', autofills the `email` field without skipping the KYC screen. Ignored if `email`/`userData` aren't set.
+     */
+    isAutoFillUserData?: boolean;
     /**
      * - An identifier you would like to associate with the order. It is returned in webhooks and order data.
      */
