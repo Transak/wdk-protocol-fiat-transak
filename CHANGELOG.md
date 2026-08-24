@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-08-24
+
+### Added
+
+- Additional Transak widget UI parameters supported under `config` for `buy`/`sell` (e.g. `disablePaymentMethods`, `userData`, `isAutoFillUserData`, `exchangeScreenTitle`, and sell's `walletRedirection`).
+
+### Fixed
+
+- `getSupportedCountries` — `isBuyAllowed`/`isSellAllowed` are now derived solely from the country's own `isAllowed` flag, instead of also depending on the matching fiat currency's flags.
+- `hideMenu` widget parameter type corrected from `string` to `boolean`.
+- Corrected headers on the `refresh-token` example in the README/backend integration guidance (`x-api-key` added; `x-user-ip` limited to the Create Session call, where Transak actually requires it).
+
 ## [1.0.0] - 2026-08-12
 
 ### Added
