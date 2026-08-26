@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-08-26
+
+### Added
+
+- Exported several public types from the package root that were previously only reachable indirectly (`TransakWidgetParams`, `TransakBuyOptions`/`TransakSellOptions`, `TransakBuyQuote`/`TransakSellQuote`, `TransakQuoteBuyOptions`/`TransakQuoteSellOptions`, `TransakWidgetUiBuyParams`/`TransakWidgetUiSellParams`, `TransakSupportedCryptoAsset`/`TransakSupportedFiatCurrency`/`TransakSupportedCountry`, `TransakWalletAddressesData`/`TransakWalletAddressEntry`, and `TransakUserData`/`TransakUserAddress`).
+
+### Fixed
+
+- `referrerDomain` is now correctly typed as required on the widget config, instead of optional.
+- `widgetUrl`'s parameter type now reflects the buy- or sell-specific UI fields actually passed to it at runtime, instead of the narrower shared base type.
+- `walletAddressesData` and `userData` widget config fields now have proper structured types instead of `Object`.
+- Added missing `@see` API documentation links for `TransakCountryDetail`, `TransakQuote`, and `TransakOrder`.
+
 ## [1.0.1] - 2026-08-24
 
 ### Added
