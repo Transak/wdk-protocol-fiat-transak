@@ -164,6 +164,91 @@ export type TransakWidgetUiParams = {
     hideMenu?: boolean;
 };
 /**
+ * A single wallet address entry within {@link TransakWalletAddressesData}.
+ */
+export type TransakWalletAddressEntry = {
+    /**
+     * - The wallet address.
+     */
+    address: string;
+    /**
+     * - Additional data required alongside the address (e.g. a memo/tag), when applicable.
+     */
+    addressAdditionalData?: string;
+};
+/**
+ * Wallet addresses for pre-filling multiple destination addresses at once, keyed by
+ * Transak network identifier and/or coin symbol.
+ */
+export type TransakWalletAddressesData = {
+    /**
+     * - Wallet addresses keyed by Transak network identifier (e.g. 'ethereum', 'polygon').
+     */
+    networks?: Record<string, TransakWalletAddressEntry>;
+    /**
+     * - Wallet addresses keyed by coin symbol (e.g. 'BTC', 'DAI').
+     */
+    coins?: Record<string, TransakWalletAddressEntry>;
+};
+/**
+ * A partner-supplied physical address within {@link TransakUserData}.
+ */
+export type TransakUserAddress = {
+    /**
+     * - The first line of the address.
+     */
+    addressLine1?: string;
+    /**
+     * - The second line of the address.
+     */
+    addressLine2?: string;
+    /**
+     * - The city.
+     */
+    city?: string;
+    /**
+     * - The state or region.
+     */
+    state?: string;
+    /**
+     * - The postal/ZIP code.
+     */
+    postCode?: string;
+    /**
+     * - The ISO 3166-1 alpha-2 country code.
+     */
+    countryCode?: string;
+};
+/**
+ * Prefilled customer details, used to streamline or skip the KYC form.
+ */
+export type TransakUserData = {
+    /**
+     * - The customer's first name.
+     */
+    firstName?: string;
+    /**
+     * - The customer's last name.
+     */
+    lastName?: string;
+    /**
+     * - The customer's email address.
+     */
+    email?: string;
+    /**
+     * - The customer's mobile number, in E.164 format.
+     */
+    mobileNumber?: string;
+    /**
+     * - The customer's date of birth, as an ISO 8601 date string (e.g. '1994-08-26').
+     */
+    dob?: string;
+    /**
+     * - The customer's physical address.
+     */
+    address?: TransakUserAddress;
+};
+/**
  * Widget UI parameters specific to the buy (on-ramp) flow.
  */
 export type TransakWidgetUiBuyParams = {
@@ -174,7 +259,7 @@ export type TransakWidgetUiBuyParams = {
     /**
      * - Wallet addresses keyed by network/coin. Skipped if `walletAddress` is passed.
      */
-    walletAddressesData?: any;
+    walletAddressesData?: TransakWalletAddressesData;
     /**
      * - If 'true', the customer cannot edit the destination wallet address.
      */
@@ -210,7 +295,7 @@ export type TransakWidgetUiBuyParams = {
     /**
      * - Prefills the customer's name, address, and date of birth to streamline or skip the KYC form.
      */
-    userData?: any;
+    userData?: TransakUserData;
     /**
      * - If 'true', autofills the `email` field without skipping the KYC screen. Ignored if `email`/`userData` aren't set.
      */
@@ -268,7 +353,7 @@ export type TransakWidgetUiSellParams = {
     /**
      * - Prefills the customer's name, address, and date of birth to streamline or skip the KYC form.
      */
-    userData?: any;
+    userData?: TransakUserData;
     /**
      * - If 'true', autofills the `email` field without skipping the KYC screen. Ignored if `email`/`userData` aren't set.
      */
@@ -519,6 +604,7 @@ export type TransakCountryPartner = {
 };
 /**
  * A country as returned by Transak's Get Countries API.
+ * @see https://docs.transak.com/api/public/get-countries
  */
 export type TransakCountryDetail = {
     /**
@@ -581,6 +667,7 @@ export type TransakFeeBreakdown = {
 };
 /**
  * A quote for a Transak buy or sell, as returned by the pricing API.
+ * @see https://docs.transak.com/api/public/get-price
  */
 export type TransakQuote = {
     /**
@@ -654,6 +741,7 @@ export type TransakQuote = {
 };
 /**
  * A Transak order, as returned by the Get Order API.
+ * @see https://docs.transak.com/api/public/get-order-by-order-id
  */
 export type TransakOrder = {
     /**

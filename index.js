@@ -14,13 +14,28 @@
 'use strict'
 
 /** @typedef {import('./src/transak-protocol.js').TransakProtocolConfig} TransakProtocolConfig */
+/** @typedef {import('./src/transak-protocol.js').TransakWidgetParams} TransakWidgetParams */
 /** @typedef {import('./src/transak-protocol.js').TransakWidgetUiParams} TransakWidgetUiParams */
+/** @typedef {import('./src/transak-protocol.js').TransakWidgetUiBuyParams} TransakWidgetUiBuyParams */
+/** @typedef {import('./src/transak-protocol.js').TransakWalletAddressesData} TransakWalletAddressesData */
+/** @typedef {import('./src/transak-protocol.js').TransakWalletAddressEntry} TransakWalletAddressEntry */
+/** @typedef {import('./src/transak-protocol.js').TransakUserData} TransakUserData */
+/** @typedef {import('./src/transak-protocol.js').TransakUserAddress} TransakUserAddress */
 /** @typedef {import('./src/transak-protocol.js').TransakBuyParams} TransakBuyParams */
+/** @typedef {import('./src/transak-protocol.js').TransakWidgetUiSellParams} TransakWidgetUiSellParams */
 /** @typedef {import('./src/transak-protocol.js').TransakSellParams} TransakSellParams */
 /** @typedef {import('./src/transak-protocol.js').TransakQuoteBuyParams} TransakQuoteBuyParams */
+/** @typedef {import('./src/transak-protocol.js').TransakBuyOptions} TransakBuyOptions */
+/** @typedef {import('./src/transak-protocol.js').TransakQuoteBuyOptions} TransakQuoteBuyOptions */
+/** @typedef {import('./src/transak-protocol.js').TransakBuyQuote} TransakBuyQuote */
 /** @typedef {import('./src/transak-protocol.js').TransakQuoteSellParams} TransakQuoteSellParams */
+/** @typedef {import('./src/transak-protocol.js').TransakQuoteSellOptions} TransakQuoteSellOptions */
+/** @typedef {import('./src/transak-protocol.js').TransakSellQuote} TransakSellQuote */
+/** @typedef {import('./src/transak-protocol.js').TransakSellOptions} TransakSellOptions */
 /** @typedef {import('./src/transak-protocol.js').TransakFiatCurrencyDetails} TransakFiatCurrencyDetails */
+/** @typedef {import('./src/transak-protocol.js').TransakSupportedFiatCurrency} TransakSupportedFiatCurrency */
 /** @typedef {import('./src/transak-protocol.js').TransakCryptoCurrencyDetails} TransakCryptoCurrencyDetails */
+/** @typedef {import('./src/transak-protocol.js').TransakSupportedCryptoAsset} TransakSupportedCryptoAsset */
 /** @typedef {import('./src/transak-protocol.js').TransakNetworkDetails} TransakNetworkDetails */
 /** @typedef {import('./src/transak-protocol.js').TransakPaymentOption} TransakPaymentOption */
 /** @typedef {import('./src/transak-protocol.js').TransakOrderStatus} TransakOrderStatus */
@@ -29,6 +44,7 @@
 /** @typedef {import('./src/transak-protocol.js').TransakFeeBreakdown} TransakFeeBreakdown */
 /** @typedef {import('./src/transak-protocol.js').TransakCountryPartner} TransakCountryPartner */
 /** @typedef {import('./src/transak-protocol.js').TransakCountryDetail} TransakCountryDetail */
+/** @typedef {import('./src/transak-protocol.js').TransakSupportedCountry} TransakSupportedCountry */
 /** @typedef {import('./src/transak-protocol.js').TransakTransactionDetail} TransakTransactionDetail */
 
 export { default, TransakProtocol, IFiatProtocol } from './src/transak-protocol.js'

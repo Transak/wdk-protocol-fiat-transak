@@ -52,10 +52,47 @@ import { TransakApiError } from './errors.js'
  */
 
 /**
+ * A single wallet address entry within {@link TransakWalletAddressesData}.
+ * @typedef {Object} TransakWalletAddressEntry
+ * @property {string} address - The wallet address.
+ * @property {string} [addressAdditionalData] - Additional data required alongside the address (e.g. a memo/tag), when applicable.
+ */
+
+/**
+ * Wallet addresses for pre-filling multiple destination addresses at once, keyed by
+ * Transak network identifier and/or coin symbol.
+ * @typedef {Object} TransakWalletAddressesData
+ * @property {Record<string, TransakWalletAddressEntry>} [networks] - Wallet addresses keyed by Transak network identifier (e.g. 'ethereum', 'polygon').
+ * @property {Record<string, TransakWalletAddressEntry>} [coins] - Wallet addresses keyed by coin symbol (e.g. 'BTC', 'DAI').
+ */
+
+/**
+ * A partner-supplied physical address within {@link TransakUserData}.
+ * @typedef {Object} TransakUserAddress
+ * @property {string} [addressLine1] - The first line of the address.
+ * @property {string} [addressLine2] - The second line of the address.
+ * @property {string} [city] - The city.
+ * @property {string} [state] - The state or region.
+ * @property {string} [postCode] - The postal/ZIP code.
+ * @property {string} [countryCode] - The ISO 3166-1 alpha-2 country code.
+ */
+
+/**
+ * Prefilled customer details, used to streamline or skip the KYC form.
+ * @typedef {Object} TransakUserData
+ * @property {string} [firstName] - The customer's first name.
+ * @property {string} [lastName] - The customer's last name.
+ * @property {string} [email] - The customer's email address.
+ * @property {string} [mobileNumber] - The customer's mobile number, in E.164 format.
+ * @property {string} [dob] - The customer's date of birth, as an ISO 8601 date string (e.g. '1994-08-26').
+ * @property {TransakUserAddress} [address] - The customer's physical address.
+ */
+
+/**
  * Widget UI parameters specific to the buy (on-ramp) flow.
  * @typedef {Object} TransakWidgetUiBuyParams
  * @property {string} [walletAddress] - The destination wallet address. If you pass a valid wallet address the customer won't be prompted to enter one.
- * @property {Object} [walletAddressesData] - Wallet addresses keyed by network/coin. Skipped if `walletAddress` is passed.
+ * @property {TransakWalletAddressesData} [walletAddressesData] - Wallet addresses keyed by network/coin. Skipped if `walletAddress` is passed.
  * @property {boolean} [disableWalletAddressForm] - If 'true', the customer cannot edit the destination wallet address.
  * @property {string} [exchangeScreenTitle] - A custom title for the exchange screen.
  * @property {boolean} [hideExchangeScreen] - If 'true', skips the exchange screen and takes the customer straight to the payment screen.
@@ -64,7 +101,7 @@ import { TransakApiError } from './errors.js'
  * @property {string} [paymentMethod] - Restrict the customer to a single payment method.
  * @property {string[]} [disablePaymentMethods] - Payment methods to hide from the customer.
  * @property {string} [email] - The customer's email address. If you pass a valid email address, the customer won't be prompted to enter one.
- * @property {Object} [userData] - Prefills the customer's name, address, and date of birth to streamline or skip the KYC form.
+ * @property {TransakUserData} [userData] - Prefills the customer's name, address, and date of birth to streamline or skip the KYC form.
  * @property {boolean} [isAutoFillUserData] - If 'true', autofills the `email` field without skipping the KYC screen. Ignored if `email`/`userData` aren't set.
  * @property {string} [partnerOrderId] - An identifier you would like to associate with the order. It is returned in webhooks and order data.
  * @property {string} [partnerCustomerId] - An identifier you would like to associate with the customer. It is returned in webhooks and order data.
@@ -84,7 +121,7 @@ import { TransakApiError } from './errors.js'
  * @property {string} [paymentMethod] - Restrict the customer to a single payout method.
  * @property {string[]} [disablePaymentMethods] - Payout methods to hide from the customer.
  * @property {string} [email] - The customer's email address. If you pass a valid email address, the customer won't be prompted to enter one.
- * @property {Object} [userData] - Prefills the customer's name, address, and date of birth to streamline or skip the KYC form.
+ * @property {TransakUserData} [userData] - Prefills the customer's name, address, and date of birth to streamline or skip the KYC form.
  * @property {boolean} [isAutoFillUserData] - If 'true', autofills the `email` field without skipping the KYC screen. Ignored if `email`/`userData` aren't set.
  * @property {string} [partnerOrderId] - An identifier you would like to associate with the order. It is returned in webhooks and order data.
  * @property {string} [partnerCustomerId] - An identifier you would like to associate with the customer. It is returned in webhooks and order data.
@@ -180,6 +217,7 @@ import { TransakApiError } from './errors.js'
 
 /**
  * A country as returned by Transak's Get Countries API.
+ * @see https://docs.transak.com/api/public/get-countries
  * @typedef {Object} TransakCountryDetail
  * @property {string} alpha2 - The country's ISO 3166-1 alpha-2 code.
  * @property {string} alpha3 - The country's ISO 3166-1 alpha-3 code.
@@ -207,6 +245,7 @@ import { TransakApiError } from './errors.js'
 
 /**
  * A quote for a Transak buy or sell, as returned by the pricing API.
+ * @see https://docs.transak.com/api/public/get-price
  * @typedef {Object} TransakQuote
  * @property {string} quoteId - Unique identifier for the quote.
  * @property {number} conversionPrice - The exchange rate between the crypto currency and the fiat currency.
@@ -229,6 +268,7 @@ import { TransakApiError } from './errors.js'
 
 /**
  * A Transak order, as returned by the Get Order API.
+ * @see https://docs.transak.com/api/public/get-order-by-order-id
  * @typedef {Object} TransakOrder
  * @property {string} id - Unique identifier for the order.
  * @property {TransakOrderStatus} status - The order's status.
