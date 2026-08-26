@@ -157,7 +157,7 @@ export type TransakWidgetUiParams = {
     /**
      * - Your domain URL (web) or application package name (mobile). Recommended for allow-listing.
      */
-    referrerDomain?: string;
+    referrerDomain: string;
     /**
      * - If 'true', hides the widget navigation menu.
      */
@@ -787,9 +787,9 @@ export type TransakProtocolConfig = {
      */
     apiKey: string;
     /**
-     * - Required by `buy`/`sell`. Receives the assembled `widgetParams` object and must return a session-based widget URL. Create it on your backend by calling Transak's Create Widget URL API (which needs your API secret). `buy`/`sell` throw if it is not provided.
+     * - Required by `buy`/`sell`. Receives the assembled `widgetParams` object — carrying the buy flow's UI fields when called from `buy`, or the sell flow's when called from `sell` — and must return a session-based widget URL. Create it on your backend by calling Transak's Create Widget URL API (which needs your API secret). `buy`/`sell` throw if it is not provided.
      */
-    widgetUrl?: (widgetParams: TransakWidgetParams) => Promise<string>;
+    widgetUrl?: (widgetParams: (TransakWidgetParams & TransakBuyParams) | (TransakWidgetParams & TransakSellParams)) => Promise<string>;
     /**
      * - Required by `getTransactionDetail`. Receives an order id and must return the Transak order. Fetch it on your backend by calling Transak's Get Order API (which needs a partner `access-token` minted from your API secret). `getTransactionDetail` throws if it is not provided.
      */

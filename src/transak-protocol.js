@@ -47,7 +47,7 @@ import { TransakApiError } from './errors.js'
  * @property {string} [themeColor] - The primary color of the widget, as a hex code without the leading '#'.
  * @property {'DARK' | 'LIGHT'} [colorMode] - The default appearance for the widget.
  * @property {string} [redirectURL] - A URL to redirect the customer to after the flow is complete. Must use 'https://'.
- * @property {string} [referrerDomain] - Your domain URL (web) or application package name (mobile). Recommended for allow-listing.
+ * @property {string} referrerDomain - Your domain URL (web) or application package name (mobile). Recommended for allow-listing.
  * @property {boolean} [hideMenu] - If 'true', hides the widget navigation menu.
  */
 
@@ -294,7 +294,7 @@ import { TransakApiError } from './errors.js'
  * Configuration for {@link TransakProtocol}.
  * @typedef {Object} TransakProtocolConfig
  * @property {string} apiKey - Your Transak partner API key.
- * @property {(widgetParams: TransakWidgetParams) => Promise<string>} [widgetUrl] - Required by `buy`/`sell`. Receives the assembled `widgetParams` object and must return a session-based widget URL. Create it on your backend by calling Transak's Create Widget URL API (which needs your API secret). `buy`/`sell` throw if it is not provided.
+ * @property {(widgetParams: (TransakWidgetParams & TransakBuyParams) | (TransakWidgetParams & TransakSellParams)) => Promise<string>} [widgetUrl] - Required by `buy`/`sell`. Receives the assembled `widgetParams` object — carrying the buy flow's UI fields when called from `buy`, or the sell flow's when called from `sell` — and must return a session-based widget URL. Create it on your backend by calling Transak's Create Widget URL API (which needs your API secret). `buy`/`sell` throw if it is not provided.
  * @property {(txId: string) => Promise<TransakOrder>} [getOrder] - Required by `getTransactionDetail`. Receives an order id and must return the Transak order. Fetch it on your backend by calling Transak's Get Order API (which needs a partner `access-token` minted from your API secret). `getTransactionDetail` throws if it is not provided.
  * @property {number} [cacheTime] - The duration in milliseconds to cache supported currencies (default: 600,000 — 10 minutes).
  * @property {"PRODUCTION" | "STAGING"} [environment] - The environment to use for Transak endpoints and widget URLs. Defaults to "PRODUCTION". Use "PRODUCTION" for live transactions and "STAGING" for testing with non-real funds.
